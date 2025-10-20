@@ -21,9 +21,9 @@ class MainWindow(QMainWindow):
         self.side_menu.setMaximumWidth(320)
         self.setCentralWidget(self.splitter)
 
-        self.side_menu.signal_show_dashboard.connect(lambda: self.work_area.goto("General"))
-        self.side_menu.signal_show_logs.connect(lambda: self.work_area.goto("Resume"))
+        self.side_menu.signal_show_dashboard.connect(lambda: self.work_area.goto("dashboard"))
         self.side_menu.signal_show_settings.connect(lambda: self.work_area.goto("settings"))
+        self.side_menu.signal_show_logs.connect(lambda: self.work_area.goto("logs"))
         self.side_menu.signal_toggle_menu.connect(self._toggle_menu_width)
 
         try:

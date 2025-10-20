@@ -17,9 +17,9 @@ class WorkArea(QWidget):
         self.stack = QStackedWidget()
         layout.addWidget(self.stack)
 
-        self._add_page("dashboard", self._make_label("Work Area — Dashboard"))
-        self._add_page("logs", self._make_label("Work Area — Logs"))
+        self._add_page("dashboard", self._make_label("Work Area — Welcome"))
         self._add_page("settings", self._make_label("Work Area — Settings"))
+        self._add_page("logs", self._make_label("Work Area — Logs"))
         self.goto("dashboard")
 
     def _make_label(self, text: str) -> QWidget:

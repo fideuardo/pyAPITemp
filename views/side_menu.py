@@ -6,6 +6,7 @@ class SideMenu(QWidget):
     signal_show_logs = Signal()
     signal_show_settings = Signal()
     signal_toggle_menu = Signal()
+    
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -22,7 +23,7 @@ class SideMenu(QWidget):
         title.setObjectName("MenuTitle")
         title.setAlignment(Qt.AlignHCenter)
 
-        btn_dashboard = QPushButton("Dashboard")
+        btn_dashboard = QPushButton("Welcome")
         btn_logs = QPushButton("Logs")
         btn_settings = QPushButton("Settings")
 
@@ -43,8 +44,8 @@ class SideMenu(QWidget):
         layout.addWidget(title)
         layout.addSpacing(6)
         layout.addWidget(btn_dashboard)
-        layout.addWidget(btn_logs)
         layout.addWidget(btn_settings)
+        layout.addWidget(btn_logs)
         layout.addSpacing(6)
         layout.addWidget(sep)
         layout.addWidget(btn_collapse, alignment=Qt.AlignHCenter)
