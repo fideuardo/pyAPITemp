@@ -50,6 +50,8 @@ class MainWindow(QMainWindow):
         for key, value in settings.items():
             if key == "operation_mode":
                 self.temperature.set_operation_mode(value)
+            elif key == "simulation_mode":
+                self.temperature.set_simulation_mode(value)
             # Aquí se pueden añadir llamadas para otras configuraciones
             # elif key == "sampling_period_ms":
             #     self.temperature.set_sampling_period_ms(int(value))

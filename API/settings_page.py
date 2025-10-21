@@ -36,9 +36,6 @@ class SettingsPage(QWidget):
 
         # Diccionario para mantener una referencia a los widgets de entrada
         self._input_widgets: dict[str, QWidget] = {}
-        # Lista para mantener los widgets de la fila de sampling_period_ms
-        self._sampling_period_row_widgets: list[QWidget] = []
-
 
     def set_config_info(self, config: dict[str, str]):
         """Updates the displayed sensor configuration information."""
@@ -47,46 +44,24 @@ class SettingsPage(QWidget):
             if item.widget():
                 item.widget().deleteLater()
         self._input_widgets.clear()
-        self._sampling_period_row_widgets.clear()
 
-        # Define el orden explícito en el que se deben mostrar los campos
-        field_order = [
-            "name",
-            "version",
-            "state",
-            "operation_mode",
-            "simulation_mode",
-            "threshold_mc",
-            "sampling_period_ms",
-        ]
-
-        operation_mode_combo = None
-
-        # Iterar sobre la lista ordenada para construir la UI
-        for key in field_order:
-            if key not in config:
-                continue  # Si por alguna razón un campo no viene, lo saltamos
-
-            value = config[key]
+        for key, value in config.items():
             key_label = QLabel(f"{key.replace('_', ' ').capitalize()}:")
-
             if key == "operation_mode":
                 combo = QComboBox()
-                combo.addItems(["oneshot", "continuous"])
+                combo.addItems(["one-shot", "continuous"])
+                combo.setCurrentText(str(value))
+                self._form_layout.addRow(key_label, combo)
+                self._input_widgets[key] = combo  # Guardar referencia
+            elif key == "simulation_mode":
+                combo = QComboBox()
+                combo.addItems(["normal", "noisy", "ramp"])
                 combo.setCurrentText(str(value))
                 self._form_layout.addRow(key_label, combo)
                 self._input_widgets[key] = combo
-                operation_mode_combo = combo
             else:
                 value_label = QLabel(str(value) if value is not None else "N/A")
                 self._form_layout.addRow(key_label, value_label)
-                if key == "sampling_period_ms":
-                    self._sampling_period_row_widgets = [key_label, value_label]
-
-        # Conectar la señal y establecer la visibilidad inicial
-        if operation_mode_combo:
-            operation_mode_combo.currentTextChanged.connect(self._update_sampling_period_visibility)
-            self._update_sampling_period_visibility(operation_mode_combo.currentText())
 
     def _on_write_settings(self):
         """Recopila los valores de los widgets de entrada y emite la señal."""
@@ -100,9 +75,3 @@ class SettingsPage(QWidget):
 
         if settings:
             self.settings_to_write.emit(settings)
-
-    def _update_sampling_period_visibility(self, mode: str):
-        """Muestra u oculta la fila de 'sampling_period_ms'."""
-        is_visible = (mode == "continuous")
-        for widget in self._sampling_period_row_widgets:
-            widget.setVisible(is_visible)
