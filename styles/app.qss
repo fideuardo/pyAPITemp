@@ -1,0 +1,39 @@
+/* Qt Style Sheets don't support CSS 'filter'. Use color changes for states. */
+#SideMenu {
+    background: #94b85a;
+    border-right: 1px solid #7aa342;
+}
+
+#MenuTitle {
+    font-weight: 600;
+    color: #142414;
+}
+
+#MenuButton {
+    background: #a8c874;
+    border: 1px solid #7aa342;
+    border-radius: 6px;
+    padding: 6px 10px;
+}
+#MenuButton:hover {
+    background: #b6d589;           /* slightly lighter */
+    border-color: #6b9437;
+}
+#MenuButton:pressed {
+    background: #97bb6a;           /* slightly darker */
+    border-color: #5e8532;
+}
+
+#CollapseButton {
+    background: #dbe8c7;
+    border: 1px solid #9bb97b;
+    border-radius: 6px;
+    padding: 2px 8px;
+}
+#CollapseButton:hover { background: #e7efd7; }
+#CollapseButton:pressed { background: #cddab5; }
+
+#WorkArea {
+    background: #2379dbff;
+    border: 1px solid #2e7d32;
+}
