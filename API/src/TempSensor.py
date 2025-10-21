@@ -28,9 +28,9 @@ class DriverInfo:
     name: str
     version: str
     state: str
-    operation_mode: Optional[str]
-    threshold_mc: Optional[int]
+    operation_mode: Optional[str]    
     simulation_mode: Optional[str]
+    threshold_mc: Optional[int]
     sampling_period_ms: Optional[int]
     
 

@@ -49,30 +49,39 @@ class SettingsPage(QWidget):
         self._input_widgets.clear()
         self._sampling_period_row_widgets.clear()
 
-        # Crear el ComboBox de operation_mode primero
+        # Define el orden explícito en el que se deben mostrar los campos
+        field_order = [
+            "name",
+            "version",
+            "state",
+            "operation_mode",
+            "simulation_mode",
+            "threshold_mc",
+            "sampling_period_ms",
+        ]
+
         operation_mode_combo = None
-        if "operation_mode" in config:
-            key = "operation_mode"
+
+        # Iterar sobre la lista ordenada para construir la UI
+        for key in field_order:
+            if key not in config:
+                continue  # Si por alguna razón un campo no viene, lo saltamos
+
             value = config[key]
             key_label = QLabel(f"{key.replace('_', ' ').capitalize()}:")
-            combo = QComboBox()
-            combo.addItems(["one-shot", "continuous"])
-            combo.setCurrentText(str(value))
-            self._form_layout.addRow(key_label, combo)
-            self._input_widgets[key] = combo
-            operation_mode_combo = combo
 
-        # Crear el resto de los campos
-        for key, value in config.items():
             if key == "operation_mode":
-                continue  # Ya fue procesado
-
-            key_label = QLabel(f"{key.replace('_', ' ').capitalize()}:")
-            value_label = QLabel(str(value) if value is not None else "N/A")
-            self._form_layout.addRow(key_label, value_label)
-
-            if key == "sampling_period_ms":
-                self._sampling_period_row_widgets = [key_label, value_label]
+                combo = QComboBox()
+                combo.addItems(["one-shot", "continuous"])
+                combo.setCurrentText(str(value))
+                self._form_layout.addRow(key_label, combo)
+                self._input_widgets[key] = combo
+                operation_mode_combo = combo
+            else:
+                value_label = QLabel(str(value) if value is not None else "N/A")
+                self._form_layout.addRow(key_label, value_label)
+                if key == "sampling_period_ms":
+                    self._sampling_period_row_widgets = [key_label, value_label]
 
         # Conectar la señal y establecer la visibilidad inicial
         if operation_mode_combo:
