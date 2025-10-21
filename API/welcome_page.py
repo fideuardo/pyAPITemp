@@ -59,9 +59,12 @@ class WelcomePage(QWidget):
         Ejemplo: set_info("API", api_dict, "Driver", driver_dict, alignment="horizontal")
         """
         # Limpia el contenedor anterior
-        if self._info_container.layout() is not None:
-            # Elimina el layout y su contenido de forma segura
-            QWidget().setLayout(self._info_container.layout())
+        layout = self._info_container.layout()
+        if layout is not None:
+            while layout.count():
+                item = layout.takeAt(0)
+                if item.widget():
+                    item.widget().deleteLater()
 
         if alignment == "horizontal":
             container_layout = QHBoxLayout(self._info_container)

@@ -2,6 +2,7 @@ from PySide6.QtWidgets import QWidget, QStackedWidget, QVBoxLayout, QLabel
 from PySide6.QtCore import Qt, Signal
 from .welcome_page import WelcomePage
 from .settings_page import SettingsPage
+from .logs_page import LogsPage
 
 class  WorkArea(QWidget):
 
@@ -24,8 +25,8 @@ class  WorkArea(QWidget):
 
         self._welcome_page = WelcomePage()
         self._settings_page = SettingsPage()
+        self._logs_page = LogsPage()
         self._add_page("welcome", self._welcome_page)
-        self._add_page("logs", self._make_label("Work Area — Logs"))
         self._add_page("settings", self._settings_page)
 
         # Connect the signal from the settings page to this class's signal
@@ -43,6 +44,11 @@ class  WorkArea(QWidget):
 
     def set_settings_page_info(self, config_info: dict[str, str]) -> None:
         self._settings_page.set_config_info(config_info)
+        # Aprovechamos para informar a la página de logs sobre el modo actual
+        if "operation_mode" in config_info:
+            self._logs_page.set_operation_mode(config_info["operation_mode"])
+
+    # --- Nuevos métodos para interactuar con LogsPage ---
 
     def _add_page(self, name: str, widget: QWidget):
         idx = self.stack.addWidget(widget)
