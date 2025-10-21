@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 from collections.abc import Generator, Iterable
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Optional
 
 from kernel.apitest.LxDrTemp import (
+    DriverState,
     OperationMode,
     SIMTEMP_FLAG_ONESHOT_DONE,
     SimTempDriver,
@@ -18,7 +20,19 @@ from kernel.apitest.LxDrTemp import (
     SimulationMode,
 )
 
-__all__ = ["TempSensor"]
+__all__ = ["TempSensor", "DriverInfo"]
+
+
+@dataclass(frozen=True)
+class DriverInfo:
+    name: str
+    version: str
+    state: str
+    operation_mode: Optional[str]
+    threshold_mc: Optional[int]
+    simulation_mode: Optional[str]
+    sampling_period_ms: Optional[int]
+    
 
 
 class TempSensor:
@@ -59,12 +73,48 @@ class TempSensor:
 
     @property
     def info(self) -> dict[str, str]:
-        """Return metadata about the driver."""
-        # Combine static info with dynamic version info from the driver.
-        return {
+        """Return metadata about the driver"""
+        metadata = {
             **self._info,
             "version": self._driver.get_driver_version(),
         }
+        return metadata
+    
+    @property
+    def driverconfig(self) -> dict[str, str]:
+        """Return the current configuration of the sensor as a dictionary."""
+        config_obj = self.get_driver_info()
+        return asdict(config_obj)
+
+ 
+    def get_driver_info(self) -> DriverInfo:
+        """Collect metadata about the underlying driver using sysfs."""
+        sysfs_base = Path(self._driver.sysfs_base)
+
+        name = self._read_optional_text(sysfs_base / "name") or sysfs_base.name
+        version = self._driver.get_driver_version()
+
+        state_text = self._read_optional_text(sysfs_base / "state")
+        state = self._decode_state(state_text)
+        operation_mode = self._read_optional_text(sysfs_base / "operation_mode")
+        threshold = self._read_optional_int(sysfs_base / "threshold_mC")
+        sampling_period = self._read_optional_int(sysfs_base / "sampling_ms")
+        simulation_mode = self._read_optional_text(sysfs_base / "mode")
+       
+
+        return DriverInfo(
+            name=name,
+            version=version,
+            state=state,
+            operation_mode=operation_mode,
+            threshold_mc=threshold,
+            sampling_period_ms=sampling_period,
+            simulation_mode=simulation_mode,
+        )
+
+    def getinfodriver(self) -> dict[str, str]:
+        """Backward-compatible alias returning driver metadata."""
+        return self.info
 
     def open(self) -> None:
         """Open the underlying device if it is not already open."""
@@ -163,6 +213,38 @@ class TempSensor:
         """Configure the temperature threshold for alert notifications."""
         self._ensure_open()
         self._driver.set_threshold_mc(threshold_mc)
+
+    def set_operation_mode(self, mode: str) -> None:
+        """Set the driver's operation mode ('one-shot' or 'continuous')."""
+        self._ensure_open()
+        self._driver.set_operation_mode(mode)
+
+    @staticmethod
+    def _read_optional_text(path: Path) -> Optional[str]:
+        try:
+            return path.read_text(encoding="ascii").strip()
+        except OSError:
+            return None
+
+    @classmethod
+    def _read_optional_int(cls, path: Path) -> Optional[int]:
+        text = cls._read_optional_text(path)
+        if text is None:
+            return None
+        try:
+            return int(text)
+        except ValueError:
+            return None
+
+    @staticmethod
+    def _decode_state(value: Optional[str]) -> str:
+        if value is None:
+            return "unknown"
+        try:
+            state = DriverState(int(value))
+        except (ValueError, TypeError):
+            return "unknown"
+        return state.name.lower()
 
     def _ensure_open(self) -> None:
         if not self._driver.is_open:

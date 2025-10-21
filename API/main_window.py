@@ -14,7 +14,6 @@ api_information = {
 class MainWindow(QMainWindow):
     def __init__(self, parent: QWidget | None = None):
         self.temperature = TempSensor()
-        print(self.temperature.info)
 
         super().__init__(parent)
         self.setWindowTitle("Instrument Panel – UI")
@@ -32,10 +31,12 @@ class MainWindow(QMainWindow):
         self.side_menu.setMaximumWidth(320)
         self.setCentralWidget(self.splitter)
         self.work_area.set_welcome_page_info(api_information, self.temperature.info) # Pasa la info del sensor
+        self.work_area.set_settings_page_info(self.temperature.driverconfig)
 
         self.side_menu.signal_show_welcome.connect(lambda: self.work_area.goto("welcome"))
         self.side_menu.signal_show_settings.connect(lambda: self.work_area.goto("settings"))
         self.side_menu.signal_show_logs.connect(lambda: self.work_area.goto("logs"))
+        self.work_area.settings_to_write.connect(self._apply_driver_settings)
         self.side_menu.signal_toggle_menu.connect(self._toggle_menu_width)
 
         try:
@@ -43,6 +44,15 @@ class MainWindow(QMainWindow):
                 self.setStyleSheet(f.read())
         except FileNotFoundError:
             pass
+
+    def _apply_driver_settings(self, settings: dict):
+        """Aplica la configuración recibida desde la UI al driver."""
+        for key, value in settings.items():
+            if key == "operation_mode":
+                self.temperature.set_operation_mode(value)
+            # Aquí se pueden añadir llamadas para otras configuraciones
+            # elif key == "sampling_period_ms":
+            #     self.temperature.set_sampling_period_ms(int(value))
 
     def _toggle_menu_width(self):
         w = self.side_menu.width()
