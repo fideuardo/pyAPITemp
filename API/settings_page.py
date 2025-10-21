@@ -6,7 +6,7 @@ from PySide6.QtGui import QIntValidator
 class SettingsPage(QWidget):
     """Widget to display driver configuration."""
 
-    # Nueva señal que emite un diccionario con la configuración a escribir
+    # Signal that emits a dictionary with the configuration to write
     settings_to_write = Signal(dict)
 
     def __init__(self, parent=None):
@@ -28,17 +28,17 @@ class SettingsPage(QWidget):
         self._form_layout = QFormLayout()
         self._main_layout.addLayout(self._form_layout)
 
-        # Botón para aplicar los cambios
+        # Button to apply the changes
         self._write_button = QPushButton("Write Settings")
         self._write_button.clicked.connect(self._on_write_settings)
         self._main_layout.addWidget(self._write_button, alignment=Qt.AlignRight)
 
         self._main_layout.addStretch(1)
 
-        # Diccionario para mantener una referencia a los widgets de entrada
+        # Store a reference to the input widgets
         self._input_widgets: dict[str, QWidget] = {}
 
-        # Lista que define la estructura, orden y tipo de widgets del formulario.
+        # Definition of the form structure, order, and widget types
         self._form_layout_definition = [
             {"key": "name", "widget": "label"},
             {"key": "version", "widget": "label"},
@@ -46,7 +46,7 @@ class SettingsPage(QWidget):
             {
                 "key": "operation_mode",
                 "widget": "combobox",
-                "options": ["oneshot", "continuous"],
+                "options": ["one-shot", "continuous"],
             },
             {
                 "key": "simulation_mode",
@@ -98,13 +98,13 @@ class SettingsPage(QWidget):
                 self._form_layout.addRow(key_label, value_label)
 
     def _on_write_settings(self):
-        """Recopila los valores de los widgets de entrada y emite la señal."""
+        """Collect values from the widgets and emit the signal."""
         settings = {}
         for key, widget in self._input_widgets.items():
             if isinstance(widget, QComboBox):
                 settings[key] = widget.currentText()
             elif isinstance(widget, QLineEdit):
-                # Solo añadir si el texto no está vacío
+                # Only add non-empty values
                 if widget.text():
                     settings[key] = widget.text()
 
