@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QMainWindow, QSplitter, QWidget
 from PySide6.QtCore import Qt
 
-from API.src import TempSensor
+from API.src.TempSensor import TempSensor
 
 from .side_menu import SideMenu
 from .work_area import WorkArea
