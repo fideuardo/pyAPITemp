@@ -1,10 +1,15 @@
 from PySide6.QtWidgets import QMainWindow, QSplitter, QWidget
 from PySide6.QtCore import Qt
+
+from API.src import TempSensor
+
 from .side_menu import SideMenu
 from .work_area import WorkArea
 
 class MainWindow(QMainWindow):
     def __init__(self, parent: QWidget | None = None):
+        self.temperature = TempSensor()
+
         super().__init__(parent)
         self.setWindowTitle("Instrument Panel – UI")
 
