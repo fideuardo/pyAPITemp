@@ -38,6 +38,33 @@ class SettingsPage(QWidget):
         # Diccionario para mantener una referencia a los widgets de entrada
         self._input_widgets: dict[str, QWidget] = {}
 
+        # Lista que define la estructura, orden y tipo de widgets del formulario.
+        self._form_layout_definition = [
+            {"key": "name", "widget": "label"},
+            {"key": "version", "widget": "label"},
+            {"key": "state", "widget": "label"},
+            {
+                "key": "operation_mode",
+                "widget": "combobox",
+                "options": ["oneshot", "continuous"],
+            },
+            {
+                "key": "simulation_mode",
+                "widget": "combobox",
+                "options": ["normal", "noisy", "ramp"],
+            },
+            {
+                "key": "threshold_mc",
+                "widget": "lineedit",
+                "validator": QIntValidator(0, 150000, self),
+            },
+            {
+                "key": "sampling_period_ms",
+                "widget": "lineedit",
+                "validator": QIntValidator(5, 5000, self),
+            },
+        ]
+
     def set_config_info(self, config: dict[str, str]):
         """Updates the displayed sensor configuration information."""
         # Clear existing layout
@@ -46,33 +73,27 @@ class SettingsPage(QWidget):
                 item.widget().deleteLater()
         self._input_widgets.clear()
 
-        for key, value in config.items():
+        for field_def in self._form_layout_definition:
+            key = field_def["key"]
+            if key not in config:
+                continue
+
+            value = config[key]
             key_label = QLabel(f"{key.replace('_', ' ').capitalize()}:")
-            if key == "operation_mode":
+            widget_type = field_def["widget"]
+
+            if widget_type == "combobox":
                 combo = QComboBox()
-                combo.addItems(["one-shot", "continuous"])
-                combo.setCurrentText(str(value))
-                self._form_layout.addRow(key_label, combo)
-                self._input_widgets[key] = combo  # Guardar referencia
-            elif key == "simulation_mode":
-                combo = QComboBox()
-                combo.addItems(["normal", "noisy", "ramp"])
+                combo.addItems(field_def["options"])
                 combo.setCurrentText(str(value))
                 self._form_layout.addRow(key_label, combo)
                 self._input_widgets[key] = combo
-            elif key in ("threshold_mc", "sampling_period_ms"):
+            elif widget_type == "lineedit":
                 line_edit = QLineEdit(str(value))
-                # Usar QIntValidator para restringir la entrada a solo números enteros
-                if key == "threshold_mc":
-                    # Rango según el driver: 0 a 150000
-                    line_edit.setValidator(QIntValidator(0, 150000, self))
-                elif key == "sampling_period_ms":
-                    # Rango según el driver: 5 a 5000
-                    line_edit.setValidator(QIntValidator(5, 5000, self))
+                line_edit.setValidator(field_def["validator"])
                 self._form_layout.addRow(key_label, line_edit)
                 self._input_widgets[key] = line_edit
-                self._sampling_period_row_widgets = [key_label, line_edit]
-            else:
+            else:  # "label"
                 value_label = QLabel(str(value) if value is not None else "N/A")
                 self._form_layout.addRow(key_label, value_label)
 
