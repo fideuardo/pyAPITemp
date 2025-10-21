@@ -1,5 +1,6 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFormLayout, QComboBox, QPushButton
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel, QFormLayout, QComboBox, QPushButton, QLineEdit
 from PySide6.QtCore import Qt, Signal
+from PySide6.QtGui import QIntValidator
 
 
 class SettingsPage(QWidget):
@@ -59,6 +60,18 @@ class SettingsPage(QWidget):
                 combo.setCurrentText(str(value))
                 self._form_layout.addRow(key_label, combo)
                 self._input_widgets[key] = combo
+            elif key in ("threshold_mc", "sampling_period_ms"):
+                line_edit = QLineEdit(str(value))
+                # Usar QIntValidator para restringir la entrada a solo números enteros
+                if key == "threshold_mc":
+                    # Rango según el driver: 0 a 150000
+                    line_edit.setValidator(QIntValidator(0, 150000, self))
+                elif key == "sampling_period_ms":
+                    # Rango según el driver: 5 a 5000
+                    line_edit.setValidator(QIntValidator(5, 5000, self))
+                self._form_layout.addRow(key_label, line_edit)
+                self._input_widgets[key] = line_edit
+                self._sampling_period_row_widgets = [key_label, line_edit]
             else:
                 value_label = QLabel(str(value) if value is not None else "N/A")
                 self._form_layout.addRow(key_label, value_label)
@@ -69,9 +82,10 @@ class SettingsPage(QWidget):
         for key, widget in self._input_widgets.items():
             if isinstance(widget, QComboBox):
                 settings[key] = widget.currentText()
-            # Aquí se pueden añadir otros tipos de widgets (QLineEdit, QSpinBox, etc.)
-            # elif isinstance(widget, QLineEdit):
-            #     settings[key] = widget.text()
+            elif isinstance(widget, QLineEdit):
+                # Solo añadir si el texto no está vacío
+                if widget.text():
+                    settings[key] = widget.text()
 
         if settings:
             self.settings_to_write.emit(settings)

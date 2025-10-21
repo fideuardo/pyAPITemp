@@ -52,9 +52,10 @@ class MainWindow(QMainWindow):
                 self.temperature.set_operation_mode(value)
             elif key == "simulation_mode":
                 self.temperature.set_simulation_mode(value)
-            # Aquí se pueden añadir llamadas para otras configuraciones
-            # elif key == "sampling_period_ms":
-            #     self.temperature.set_sampling_period_ms(int(value))
+            elif key == "sampling_period_ms":
+                self.temperature.set_sampling_period_ms(int(value))
+            elif key == "threshold_mc":
+                self.temperature.set_threshold_mc(int(value))
 
     def _toggle_menu_width(self):
         w = self.side_menu.width()
