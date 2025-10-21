@@ -6,9 +6,15 @@ from API.src.TempSensor import TempSensor
 from .side_menu import SideMenu
 from .work_area import WorkArea
 
+api_information = {
+    "name": "Temperature Panel Control",
+    "version": "0.0.1"
+}
+
 class MainWindow(QMainWindow):
     def __init__(self, parent: QWidget | None = None):
         self.temperature = TempSensor()
+        print(self.temperature.info)
 
         super().__init__(parent)
         self.setWindowTitle("Instrument Panel – UI")
@@ -25,8 +31,9 @@ class MainWindow(QMainWindow):
         self.side_menu.setMinimumWidth(180)
         self.side_menu.setMaximumWidth(320)
         self.setCentralWidget(self.splitter)
+        self.work_area.set_welcome_page_info(api_information, self.temperature.info) # Pasa la info del sensor
 
-        self.side_menu.signal_show_dashboard.connect(lambda: self.work_area.goto("dashboard"))
+        self.side_menu.signal_show_welcome.connect(lambda: self.work_area.goto("welcome"))
         self.side_menu.signal_show_settings.connect(lambda: self.work_area.goto("settings"))
         self.side_menu.signal_show_logs.connect(lambda: self.work_area.goto("logs"))
         self.side_menu.signal_toggle_menu.connect(self._toggle_menu_width)

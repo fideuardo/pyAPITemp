@@ -40,6 +40,10 @@ class TempSensor:
             driver_kwargs["sysfs_base"] = sysfs_base
 
         self._driver = SimTempDriver(auto_open=auto_open, **driver_kwargs)
+        self._info = {
+            "name": "SimTempDriver",
+            "description": "Simulated temperature sensor driver for Linux.",
+        }
 
     def __enter__(self) -> "TempSensor":
         self.open()
@@ -52,6 +56,15 @@ class TempSensor:
     def driver(self) -> SimTempDriver:
         """Return the underlying low-level driver."""
         return self._driver
+
+    @property
+    def info(self) -> dict[str, str]:
+        """Return metadata about the driver."""
+        # Combine static info with dynamic version info from the driver.
+        return {
+            **self._info,
+            "version": self._driver.get_driver_version(),
+        }
 
     def open(self) -> None:
         """Open the underlying device if it is not already open."""
