@@ -72,7 +72,7 @@ class SettingsPage(QWidget):
 
             if key == "operation_mode":
                 combo = QComboBox()
-                combo.addItems(["one-shot", "continuous"])
+                combo.addItems(["oneshot", "continuous"])
                 combo.setCurrentText(str(value))
                 self._form_layout.addRow(key_label, combo)
                 self._input_widgets[key] = combo
