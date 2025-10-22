@@ -1,7 +1,8 @@
-from PySide6.QtWidgets import QMainWindow, QSplitter, QWidget
+from PySide6.QtWidgets import QMainWindow, QSplitter, QWidget, QMessageBox
 from PySide6.QtCore import Qt
 
 from API.src.TempSensor import TempSensor
+from kernel.apitest.LxDrTemp import SimTempError
 
 from .side_menu import SideMenu
 from .work_area import WorkArea
@@ -36,26 +37,41 @@ class MainWindow(QMainWindow):
         self.side_menu.signal_show_welcome.connect(lambda: self.work_area.goto("welcome"))
         self.side_menu.signal_show_settings.connect(lambda: self.work_area.goto("settings"))
         self.side_menu.signal_show_logs.connect(lambda: self.work_area.goto("logs"))
+
+        # self.work_area.start_logging_requested.connect(self.temperature.start_logging)
+        # self.work_area.stop_logging_requested.connect(self.temperature.stop_logging)
+
         self.work_area.settings_to_write.connect(self._apply_driver_settings)
         self.side_menu.signal_toggle_menu.connect(self._toggle_menu_width)
 
         try:
-            with open("styles/app.qss", "r", encoding="utf-8") as f:
+            with open("API/styles/app.qss", "r", encoding="utf-8") as f:
                 self.setStyleSheet(f.read())
         except FileNotFoundError:
             pass
 
     def _apply_driver_settings(self, settings: dict):
         """Aplica la configuración recibida desde la UI al driver."""
+        errors: list[str] = []
         for key, value in settings.items():
-            if key == "operation_mode":
-                self.temperature.set_operation_mode(value)
-            elif key == "simulation_mode":
-                self.temperature.set_simulation_mode(value)
-            elif key == "sampling_period_ms":
-                self.temperature.set_sampling_period_ms(int(value))
-            elif key == "threshold_mc":
-                self.temperature.set_threshold_mc(int(value))
+            try:
+                if key == "operation_mode":
+                    self.temperature.set_operation_mode(value)
+                elif key == "simulation_mode":
+                    self.temperature.set_simulation_mode(value)
+                elif key == "sampling_period_ms":
+                    self.temperature.set_sampling_period_ms(int(value))
+                elif key == "threshold_mc":
+                    self.temperature.set_threshold_mc(int(value))
+            except SimTempError as exc:
+                errors.append(f"{key}: {exc}")
+
+        if errors:
+            QMessageBox.warning(
+                self,
+                "Configuración no aplicada",
+                "No se pudieron aplicar algunos ajustes:\n- " + "\n- ".join(errors),
+            )
 
     def _toggle_menu_width(self):
         w = self.side_menu.width()

@@ -2,11 +2,15 @@ from PySide6.QtWidgets import QWidget, QStackedWidget, QVBoxLayout, QLabel
 from PySide6.QtCore import Qt, Signal
 from .welcome_page import WelcomePage
 from .settings_page import SettingsPage
+from .logs_main_page import LogsMainPage
 from .logs_page import LogsPage
 
 class  WorkArea(QWidget):
 
     settings_to_write = Signal(dict)
+    start_logging_requested = Signal()
+    stop_logging_requested = Signal()
+
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -25,12 +29,19 @@ class  WorkArea(QWidget):
 
         self._welcome_page = WelcomePage()
         self._settings_page = SettingsPage()
+        self._logs_main_page = LogsMainPage()
         self._logs_page = LogsPage()
+
         self._add_page("welcome", self._welcome_page)
         self._add_page("settings", self._settings_page)
+        self._add_page("logs", self._logs_main_page)
+        self._add_page("logs_view", self._logs_page)
 
         # Connect the signal from the settings page to this class's signal
         self._settings_page.settings_to_write.connect(self.settings_to_write)
+        self._logs_main_page.start_requested.connect(self.start_logging_requested.emit)
+        self._logs_main_page.stop_requested.connect(self.stop_logging_requested.emit)
+
         self.goto("welcome")
 
     def _make_label(self, text: str) -> QWidget:
