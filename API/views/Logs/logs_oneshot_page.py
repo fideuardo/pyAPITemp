@@ -18,7 +18,7 @@ from collections import deque
 
 
 class LogsOneShotPage(QWidget):
-    """Página con un botón para solicitar una lectura en modo One-Shot."""
+    """Page with a button to request a one-shot reading."""
     read_now_requested = Signal()
 
     def __init__(self, parent=None):
@@ -31,13 +31,13 @@ class LogsOneShotPage(QWidget):
         header_panel = self._create_header_panel()
         layout.addWidget(header_panel)
 
-        # Data Main Layout principal
+        # Main data layout
         data_layout = QHBoxLayout()
         layout.addLayout(data_layout)
 
-        # --- Samples Register---
+        # --- Samples Register ---
         self._sample_panel = self._create_sample_panel()
-        data_layout.addWidget(self._sample_panel, 1) #first secttion panel
+        data_layout.addWidget(self._sample_panel, 1) # first section panel
 
         # --- Samples Graphic ---
         self._graph_panel = self._create_graph_panel()
@@ -48,10 +48,10 @@ class LogsOneShotPage(QWidget):
 
     def _create_header_panel(self) -> QWidget:
 
-        """Crea el panel superior que contiene el título, modo y botón de control."""
+        """Creates the top panel containing the title, mode, and control button."""
         panel = QWidget()
         panel_layout = QVBoxLayout(panel)
-        panel_layout.setContentsMargins(0, 0, 0, 10) # Margen inferior
+        panel_layout.setContentsMargins(0, 0, 0, 10) # Bottom margin
 
         title = QLabel("Logging Control")
         title.setStyleSheet("font-size: 24px; font-weight: bold;")
@@ -68,24 +68,24 @@ class LogsOneShotPage(QWidget):
             QPushButton:pressed { background-color: #4a8ac8; }
         """)
 
-        # Interruptor para las muestras
+        # Samples toggle switch
         self._sample_toggle = QCheckBox("Samples")
         self._sample_toggle.setStyleSheet("font-size: 14px;")
 
-        # Etiqueta de modo (derecha)
+        # Mode label (right)
         mode_label = QLabel("Mode: <b>One-Shot</b>")
         mode_label.setStyleSheet("font-size: 16px; font-style: italic;")
         
         controls_layout = QHBoxLayout()
 
-        # Añadir widgets al layout
+        # Add widgets to the layout
         controls_layout.addWidget(mode_label, alignment=Qt.AlignLeft | Qt.AlignVCenter)
         controls_layout.addStretch(1)
         controls_layout.addWidget(self._read_now_button, alignment=Qt.AlignCenter | Qt.AlignVCenter)
         controls_layout.addStretch(1)
         controls_layout.addWidget(self._sample_toggle, alignment=Qt.AlignRight | Qt.AlignVCenter)
 
-        # --- Controles para guardar archivo ---
+        # --- File saving controls ---
         file_controls_layout = QHBoxLayout()
         path_label = QLabel("Save Path:")
         self._path_line_edit = QLineEdit()
@@ -140,38 +140,37 @@ class LogsOneShotPage(QWidget):
         return chart_view
 
     def read_now(self):
-        """Se ejecuta al presionar el botón 'Read Now'."""
-        print("Iniciando lectura en modo One-Shot")
+        """Executes when the 'Read Now' button is pressed."""
         self._read_now_button.setEnabled(False)
         self.read_now_requested.emit()
 
     @Slot(dict)
     def display_sample(self, sample: dict):
-        """Muestra la temperatura de la muestra recibida."""
+        """Displays the temperature of the received sample."""
         
         if sample and "temp_mC" in sample:
             self._samples.append(sample)
             self._update_ui()
             
-            # Escribir en el archivo si el toggle está activado
+            # Write to file if the toggle is enabled
             if self._sample_toggle.isChecked():
                 self._write_sample_to_file(sample)
 
         self._read_now_button.setEnabled(True)
 
     def _update_ui(self):
-        """Actualiza la lista de historial y el gráfico con los datos actuales."""
-        # Actualizar lista
+        """Updates the history list and the chart with the current data."""
+        # Update list
         self._history_list.clear()
         for i, sample in enumerate(reversed(self._samples)):
             temp_c = sample.get("temp_mC", 0) / 1000.0
             self._history_list.insertItem(0, f"#{len(self._samples) - i}: {temp_c:.3f} °C")
 
-        # Actualizar gráfico
+        # Update chart
         points = [ (i, s.get("temp_mC", 0) / 1000.0) for i, s in enumerate(self._samples) ]
         self._series.replace([QPointF(p[0], p[1]) for p in points])
 
-        # Ajustar ejes
+        # Adjust axes
         if points:
             min_y = min(p[1] for p in points)
             max_y = max(p[1] for p in points)
@@ -179,27 +178,27 @@ class LogsOneShotPage(QWidget):
             self._axis_y.setRange(min_y - 0.5, max_y + 0.5)
 
     def _on_browse_clicked(self):
-        """Abre un diálogo para seleccionar una ruta de archivo donde guardar."""
-        # Abre un diálogo para guardar, sugiriendo un nombre de archivo y tipo
+        """Opens a dialog to select a file path for saving."""
+        # Open a save dialog, suggesting a filename and type
         file_path, _ = QFileDialog.getSaveFileName(
             self,
             "Save Samples As",
-            str(Path.home() / "samples.csv"),  # Directorio y nombre de archivo por defecto
+            str(Path.home() / "samples.csv"),  # Default directory and filename
             "CSV Files (*.csv);;Text Files (*.txt);;All Files (*)"
         )
         if file_path:
             self._path_line_edit.setText(file_path)
 
     def _on_sample_toggle_changed(self, checked: bool):
-        """Muestra un pop-up para alertar sobre la activación/desactivación del guardado."""
+        """Shows a pop-up to alert about enabling/disabling saving."""
         file_path = self._path_line_edit.text()
         if checked:
             if not file_path:
                 QMessageBox.warning(self, "No File Selected", "Please select a file path before enabling storage.")
-                self._sample_toggle.setChecked(False)  # Revertir el cambio
+                self._sample_toggle.setChecked(False)  # Revert the change
                 return
             message = f"Samples will be stored in:\n{file_path}"
-            # Verificar si el archivo es nuevo para escribir el encabezado
+            # Check if the file is new to write the header
             path = Path(file_path)
             if not path.exists():
                 try:
@@ -214,7 +213,7 @@ class LogsOneShotPage(QWidget):
         QMessageBox.information(self, "Sample Storage", message)
 
     def _write_sample_to_file(self, sample: dict):
-        """Añade una única muestra al archivo de registro."""
+        """Appends a single sample to the log file."""
         file_path = self._path_line_edit.text()
         if not file_path:
             return
@@ -223,10 +222,10 @@ class LogsOneShotPage(QWidget):
         timestamp_ns = sample.get("timestamp_ns", 0)
         line = f"{timestamp_ns},{temp_c:.3f}\n"
         try:
-            with open(file_path, "a", encoding="utf-8") as f: # 'a' para añadir (append)
+            with open(file_path, "a", encoding="utf-8") as f: # 'a' for append
                 f.write(line)
         except OSError as e:
             print(f"Error writing to file: {e}")
-            # Opcional: Desactivar el toggle y notificar al usuario si la escritura falla repetidamente.
+            # Optional: Disable the toggle and notify the user if writing fails repeatedly.
             # self._sample_toggle.setChecked(False)
             # QMessageBox.critical(self, "File Error", f"Failed to write to file:\n{e}")
