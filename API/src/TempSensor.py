@@ -133,15 +133,24 @@ class TempSensor:
             SimTempError: for driver-level failures.
         """
         self._ensure_open()
-        self._driver.stop()
-        self._driver.set_operation_mode(OperationMode.ONE_SHOT)
-        self._driver.start()
+        
+        # Optimización: Guardar estado, configurar para lectura rápida y restaurar después.
+        original_period = self._driver.get_sampling_period_ms()
+        min_period = 5 # El mínimo soportado por el driver
+
         try:
+            self._driver.stop()
+            # Establecer temporalmente el período más corto para una respuesta rápida
+            if original_period != min_period:
+                self._driver.set_sampling_period_ms(min_period)
+            self._driver.set_operation_mode(OperationMode.ONE_SHOT)
+            self._driver.start()
             sample = self._driver.read_sample(timeout=timeout)
         finally:
-            # One-shot mode auto-stops but explicitly stopping guarantees a clean slate.
             try:
                 self._driver.stop()
+                if original_period != min_period:
+                    self._driver.set_sampling_period_ms(original_period)
             except SimTempError:
                 # Ignore stop failures so the original exception, if any, surfaces.
                 pass
