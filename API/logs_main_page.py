@@ -5,7 +5,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QLabel,
 )
-from PySide6.QtCore import Qt, Signal
+from PySide6.QtCore import Qt, Signal, Slot
 
 
 class LogsMainPage(QWidget):
@@ -27,6 +27,11 @@ class LogsMainPage(QWidget):
         title.setAlignment(Qt.AlignCenter)
         main_layout.addWidget(title)
 
+        self._mode_label = QLabel("Mode: N/A")
+        self._mode_label.setStyleSheet("font-size: 16px; font-style: italic; margin-bottom: 20px;")
+        self._mode_label.setAlignment(Qt.AlignCenter)
+        main_layout.addWidget(self._mode_label)
+
         button_layout = QHBoxLayout()
         button_layout.setSpacing(20)
         button_layout.setAlignment(Qt.AlignCenter)
@@ -44,6 +49,11 @@ class LogsMainPage(QWidget):
         self._stop_button.clicked.connect(self._on_stop_clicked)
 
         self._set_initial_state()
+
+    @Slot(str)
+    def set_operation_mode(self, mode: str):
+        """Actualiza la etiqueta que muestra el modo de operación actual."""
+        self._mode_label.setText(f"Mode: <b>{mode.capitalize()}</b>")
 
     def _set_initial_state(self):
         """Establece el color inicial de los botones (estado detenido)."""

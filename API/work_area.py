@@ -58,6 +58,7 @@ class  WorkArea(QWidget):
         # Aprovechamos para informar a la página de logs sobre el modo actual
         if "operation_mode" in config_info:
             self._logs_page.set_operation_mode(config_info["operation_mode"])
+            self._logs_main_page.set_operation_mode(config_info["operation_mode"])
 
     # --- Nuevos métodos para interactuar con LogsPage ---
 

@@ -66,6 +66,9 @@ class MainWindow(QMainWindow):
             except SimTempError as exc:
                 errors.append(f"{key}: {exc}")
 
+        # Refrescar la información de configuración en la UI después de aplicar los cambios
+        self.work_area.set_settings_page_info(self.temperature.driverconfig)
+
         if errors:
             QMessageBox.warning(
                 self,
