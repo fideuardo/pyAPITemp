@@ -154,13 +154,8 @@ class LogsOneShotPage(QWidget):
             self._update_ui()
             
             # Escribir en el archivo si el toggle está activado
-            if self._sample_toggle.isChecked() and hasattr(self, 'file') and not self.file.closed:
-                temp_c = sample.get("temp_mC", 0) / 1000.0
-                timestamp_ns = sample.get("timestamp_ns", 0)
-                # Formato CSV: timestamp_ns,temperatura_celsius
-                line = f"{timestamp_ns},{temp_c:.3f}\n"
-                self.file.write(line)
-                self.file.flush()  # Asegura que los datos se escriban inmediatamente
+            if self._sample_toggle.isChecked():
+                self._write_sample_to_file(sample)
 
         self._read_now_button.setEnabled(True)
 
@@ -204,10 +199,34 @@ class LogsOneShotPage(QWidget):
                 self._sample_toggle.setChecked(False)  # Revertir el cambio
                 return
             message = f"Samples will be stored in:\n{file_path}"
-            # Abrir archivo en modo escritura y añadir un encabezado
-            self.file = open(file_path, "w", encoding="utf-8")
-            self.file.write("timestamp_ns,temperature_c\n")
+            # Verificar si el archivo es nuevo para escribir el encabezado
+            path = Path(file_path)
+            if not path.exists():
+                try:
+                    with open(path, "w", encoding="utf-8") as f:
+                        f.write("timestamp_ns,temperature_c\n")
+                except OSError as e:
+                    QMessageBox.critical(self, "File Error", f"Could not write header to file:\n{e}")
+                    self._sample_toggle.setChecked(False)
+                    return
         else:
-            self.file.close()
             message = "Sample storage is now OFF."
         QMessageBox.information(self, "Sample Storage", message)
+
+    def _write_sample_to_file(self, sample: dict):
+        """Añade una única muestra al archivo de registro."""
+        file_path = self._path_line_edit.text()
+        if not file_path:
+            return
+
+        temp_c = sample.get("temp_mC", 0) / 1000.0
+        timestamp_ns = sample.get("timestamp_ns", 0)
+        line = f"{timestamp_ns},{temp_c:.3f}\n"
+        try:
+            with open(file_path, "a", encoding="utf-8") as f: # 'a' para añadir (append)
+                f.write(line)
+        except OSError as e:
+            print(f"Error writing to file: {e}")
+            # Opcional: Desactivar el toggle y notificar al usuario si la escritura falla repetidamente.
+            # self._sample_toggle.setChecked(False)
+            # QMessageBox.critical(self, "File Error", f"Failed to write to file:\n{e}")
