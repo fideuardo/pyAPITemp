@@ -4,8 +4,8 @@ from PySide6.QtCore import Qt
 from API.src.TempSensor import TempSensor
 from kernel.apitest.LxDrTemp import SimTempError
 
-from .side_menu import SideMenu
-from .work_area import WorkArea
+from API.views.side_menu import SideMenu
+from API.views.work_area import WorkArea
 
 api_information = {
     "name": "Temperature Panel Control",

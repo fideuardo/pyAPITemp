@@ -68,9 +68,12 @@ class SettingsPage(QWidget):
     def set_config_info(self, config: dict[str, str]):
         """Updates the displayed sensor configuration information."""
         # Clear existing layout
-        while (item := self._form_layout.takeAt(0)) is not None:
-            if item.widget():
-                item.widget().deleteLater()
+        # Use a more robust way to clear the layout to avoid Qt warnings.
+        while self._form_layout.count() > 0:
+            item = self._form_layout.takeAt(0)
+            widget = item.widget()
+            if widget is not None:
+                widget.deleteLater()
         self._input_widgets.clear()
 
         for field_def in self._form_layout_definition:
