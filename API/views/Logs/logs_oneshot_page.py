@@ -23,6 +23,7 @@ class LogsOneShotPage(QWidget):
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignTop)
 
+        # --- Panel Superior: Controles y Título ---
         self._read_now_button = QPushButton("Read Now")
         self._read_now_button.setStyleSheet("""
             QPushButton {
@@ -33,11 +34,8 @@ class LogsOneShotPage(QWidget):
             QPushButton:hover { background-color: #6aa7e8; }
             QPushButton:pressed { background-color: #4a8ac8; }
         """)
-        # Contenedor para alinear el botón a la derecha
-        button_container = QHBoxLayout()
-        button_container.addStretch(1)
-        button_container.addWidget(self._read_now_button)
-        layout.addLayout(button_container)
+        header_panel = self._create_header_panel()
+        layout.addWidget(header_panel)
 
         # Layout principal para los paneles de datos
         data_layout = QHBoxLayout()
@@ -52,6 +50,27 @@ class LogsOneShotPage(QWidget):
         data_layout.addWidget(graph_panel, 3) # Ocupa 3 partes
 
         self._read_now_button.clicked.connect(self.read_now)
+
+    def _create_header_panel(self) -> QWidget:
+        """Crea el panel superior que contiene el título, modo y botón de control."""
+        panel = QWidget()
+        panel_layout = QVBoxLayout(panel)
+        panel_layout.setContentsMargins(0, 0, 0, 10) # Margen inferior
+
+        title = QLabel("Logging Control")
+        title.setStyleSheet("font-size: 24px; font-weight: bold;")
+        title.setAlignment(Qt.AlignCenter)
+
+        controls_layout = QHBoxLayout()
+        mode_label = QLabel("Mode: <b>One-Shot</b>")
+        mode_label.setStyleSheet("font-size: 16px; font-style: italic;")
+        controls_layout.addWidget(mode_label, alignment=Qt.AlignLeft | Qt.AlignVCenter)
+        controls_layout.addStretch(1)
+        controls_layout.addWidget(self._read_now_button, alignment=Qt.AlignRight | Qt.AlignVCenter)
+
+        panel_layout.addWidget(title)
+        panel_layout.addLayout(controls_layout)
+        return panel
 
     def _create_history_panel(self) -> QWidget:
         panel = QWidget()
