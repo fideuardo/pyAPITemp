@@ -52,16 +52,22 @@ class LogsContinuousPage(QWidget):
 
         self._series.append(current_time, temp)
 
-        points = self._series.pointsVector()
-        if points:
-            min_x = points[0].x()
-            max_x = points[-1].x()
-            self._axis_x.setRange(min_x, max_x)
+        # Optimización: Solo ajustar los ejes si es necesario
+        # El eje X se puede desplazar automáticamente
+        if self._series.count() > self._max_samples:
+            # Si se eliminó un punto, el rango del eje X debe actualizarse
+            points = self._series.pointsVector()
+            if points:
+                self._axis_x.setRange(points[0].x(), current_time)
+        else:
+            # Si solo se añaden puntos, basta con extender el máximo del eje X
+            if current_time > self._axis_x.max():
+                self._axis_x.setMax(current_time)
 
-            temps = [p.y() for p in points]
-            min_y = min(temps)
-            max_y = max(temps)
-            self._axis_y.setRange(min_y - 1, max_y + 1)
+        # Ajustar el eje Y solo si el nuevo valor está fuera del rango actual
+        if temp < self._axis_y.min() or temp > self._axis_y.max():
+            temps = [p.y() for p in self._series.pointsVector()]
+            self._axis_y.setRange(min(temps) - 1, max(temps) + 1)
 
     def clear_data(self):
         """Limpia todos los datos del gráfico."""

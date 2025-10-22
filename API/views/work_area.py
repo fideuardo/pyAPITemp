@@ -9,6 +9,7 @@ class  WorkArea(QWidget):
     settings_to_write = Signal(dict)
     start_logging_requested = Signal()
     stop_logging_requested = Signal()
+    read_now_requested = Signal()
 
 
     def __init__(self, parent=None):
@@ -38,6 +39,7 @@ class  WorkArea(QWidget):
         self._settings_page.settings_to_write.connect(self.settings_to_write)
         self._logs_main_page.start_requested.connect(self.start_logging_requested.emit)
         self._logs_main_page.stop_requested.connect(self.stop_logging_requested.emit)
+        self._logs_main_page.read_now_requested.connect(self.read_now_requested.emit)
 
         self.goto("welcome")
 
@@ -65,3 +67,7 @@ class  WorkArea(QWidget):
     def goto(self, name: str):
         if name in self._pages:
             self.stack.setCurrentIndex(self._pages[name])
+
+    def on_one_shot_sample_received(self, sample: dict):
+        """Pasa la muestra recibida a la página de logs."""
+        self._logs_main_page.on_sample_received(sample)

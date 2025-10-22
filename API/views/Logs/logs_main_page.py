@@ -3,15 +3,19 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QPushButton,
+    QStackedWidget,
     QLabel,
 )
 from PySide6.QtCore import Qt, Signal, Slot
-
+from .logs_oneshot_page import LogsOneShotPage
+from .logs_continuous_page import LogsContinuousPage
+ 
 
 class LogsMainPage(QWidget):
     """Página principal para la sección de Logs con controles de inicio/parada."""
     start_requested = Signal()
     stop_requested = Signal()
+    read_now_requested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -48,16 +52,38 @@ class LogsMainPage(QWidget):
 
         mode_and_buttons_layout.addLayout(button_layout)
         main_layout.addLayout(mode_and_buttons_layout) # Añadir el nuevo layout al layout principal
+
+        # --- Paneles de Datos (intercambiables) ---
+        self._data_panel_stack = QStackedWidget()
+        main_layout.addWidget(self._data_panel_stack)
+
+        # Panel para modo One-Shot
+        self._oneshot_panel = LogsOneShotPage()
+        self._data_panel_stack.addWidget(self._oneshot_panel)
+
+        # Panel para modo Continuo (gráfico)
+        self._continuous_panel = LogsContinuousPage()
+        self._data_panel_stack.addWidget(self._continuous_panel)
+        # ------------------------------------------
+
         main_layout.addStretch(1)
 
         self._start_button.clicked.connect(self._on_start_clicked)
         self._stop_button.clicked.connect(self._on_stop_clicked)
-
         self._set_initial_state()
+        self._oneshot_panel.read_now_requested.connect(self.read_now_requested.emit)
 
     @Slot(str)
     def set_operation_mode(self, mode: str):
         """Actualiza la etiqueta que muestra el modo de operación actual."""
+        is_continuous = (mode == "continuous")
+
+        # Mostrar/ocultar botones de control de logging continuo
+        self._start_button.setVisible(is_continuous)
+        self._stop_button.setVisible(is_continuous)
+
+        # Cambiar entre el panel one-shot y el panel de gráfico
+        self._data_panel_stack.setCurrentWidget(self._continuous_panel if is_continuous else self._oneshot_panel)
         self._mode_label.setText(f"Mode: <b>{mode.capitalize()}</b>") # Actualiza la etiqueta
 
     def _set_initial_state(self):
@@ -80,3 +106,11 @@ class LogsMainPage(QWidget):
         print("stop press")
         self._update_button_styles(is_running=False)
         self.stop_requested.emit()
+
+    @Slot(dict)
+    def on_sample_received(self, sample: dict):
+        self._oneshot_panel.display_sample(sample)
+
+    @Slot(dict)
+    def on_continuous_sample_received(self, sample: dict):
+        self._continuous_panel.add_sample(sample)

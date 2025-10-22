@@ -1,6 +1,7 @@
 from PySide6.QtWidgets import QMainWindow, QSplitter, QWidget, QMessageBox
 from PySide6.QtCore import Qt
 
+from dataclasses import asdict
 from API.src.TempSensor import TempSensor
 from kernel.apitest.LxDrTemp import SimTempError
 
@@ -40,6 +41,7 @@ class MainWindow(QMainWindow):
 
         # self.work_area.start_logging_requested.connect(self.temperature.start_logging)
         # self.work_area.stop_logging_requested.connect(self.temperature.stop_logging)
+        self.work_area.read_now_requested.connect(self._handle_read_now)
 
         self.work_area.settings_to_write.connect(self._apply_driver_settings)
         self.side_menu.signal_toggle_menu.connect(self._toggle_menu_width)
@@ -49,6 +51,21 @@ class MainWindow(QMainWindow):
                 self.setStyleSheet(f.read())
         except FileNotFoundError:
             pass
+
+    def _handle_read_now(self):
+        """Maneja la solicitud de lectura one-shot desde la UI."""
+        try:
+            # Esta es una llamada bloqueante. Para una UI más compleja,
+            # se podría mover a un QThread.
+            sample = self.temperature.read_once(timeout=2.0)
+            if sample:
+                # Pasa el resultado de vuelta a la UI a través de WorkArea
+                self.work_area.on_one_shot_sample_received(asdict(sample))
+        except SimTempError as e:
+            # Maneja errores (ej. timeout) y notifica al usuario
+            QMessageBox.critical(self, "Read Error", f"Failed to read one-shot sample: {e}")
+            # Envía un diccionario vacío para que la UI pueda resetear su estado
+            self.work_area.on_one_shot_sample_received({})
 
     def _apply_driver_settings(self, settings: dict):
         """Aplica la configuración recibida desde la UI al driver."""
