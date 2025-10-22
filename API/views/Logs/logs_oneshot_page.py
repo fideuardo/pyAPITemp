@@ -148,9 +148,19 @@ class LogsOneShotPage(QWidget):
     @Slot(dict)
     def display_sample(self, sample: dict):
         """Muestra la temperatura de la muestra recibida."""
+        
         if sample and "temp_mC" in sample:
             self._samples.append(sample)
             self._update_ui()
+            
+            # Escribir en el archivo si el toggle está activado
+            if self._sample_toggle.isChecked() and hasattr(self, 'file') and not self.file.closed:
+                temp_c = sample.get("temp_mC", 0) / 1000.0
+                timestamp_ns = sample.get("timestamp_ns", 0)
+                # Formato CSV: timestamp_ns,temperatura_celsius
+                line = f"{timestamp_ns},{temp_c:.3f}\n"
+                self.file.write(line)
+                self.file.flush()  # Asegura que los datos se escriban inmediatamente
 
         self._read_now_button.setEnabled(True)
 
@@ -194,6 +204,10 @@ class LogsOneShotPage(QWidget):
                 self._sample_toggle.setChecked(False)  # Revertir el cambio
                 return
             message = f"Samples will be stored in:\n{file_path}"
+            # Abrir archivo en modo escritura y añadir un encabezado
+            self.file = open(file_path, "w", encoding="utf-8")
+            self.file.write("timestamp_ns,temperature_c\n")
         else:
+            self.file.close()
             message = "Sample storage is now OFF."
         QMessageBox.information(self, "Sample Storage", message)
