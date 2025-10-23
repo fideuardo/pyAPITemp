@@ -1,18 +1,52 @@
-from PySide6.QtWidgets import QWidget, QVBoxLayout
-from PySide6.QtCore import Qt, Slot
+from PySide6.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QListWidget,
+    QCheckBox,
+    QLineEdit,
+    QFileDialog,
+    QMessageBox,
+    QComboBox,
+)
+from PySide6.QtCore import Qt, Slot, Signal
 from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
 from PySide6.QtGui import QPainter
+from kernel.apitest.LxDrTemp import SIMTEMP_FLAG_THR_EDGE
+from pathlib import Path
+from collections import deque
 import time
 
 
 class LogsContinuousPage(QWidget):
-    """Vista para mostrar un gráfico de datos continuos."""
+    """View for displaying and controlling continuous data logging."""
+    start_logging_requested = Signal()
+    stop_logging_requested = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self._samples = deque(maxlen=10)
+        self._is_logging = False
+
+        layout = QVBoxLayout(self)
+        layout.setAlignment(Qt.AlignTop)
+
+        header_panel = self._create_header_panel()
+        layout.addWidget(header_panel)
+
+        # Main data layout
+        data_layout = QHBoxLayout()
+        layout.addLayout(data_layout)
+
+        # --- Samples Register ---
+        self._sample_panel = self._create_sample_panel()
+        data_layout.addWidget(self._sample_panel, 1)
+
+        # --- Samples Graphic ---
         self._series = QLineSeries()
         self._series.setName("Temperature")
-
         chart = QChart()
         chart.addSeries(self._series)
         chart.setTitle("Live Temperature Data")
@@ -20,6 +54,99 @@ class LogsContinuousPage(QWidget):
         chart.legend().setVisible(True)
         chart.legend().setAlignment(Qt.AlignBottom)
 
+        self._graph_panel = QChartView(chart)
+        self._graph_panel.setRenderHint(QPainter.Antialiasing)
+        data_layout.addWidget(self._graph_panel, 3)
+
+        self._setup_chart_axes(chart)
+
+        self._start_button.clicked.connect(self._on_start_clicked)
+        self._stop_button.clicked.connect(self._on_stop_clicked)
+        self._sample_toggle.toggled.connect(self._on_sample_toggle_changed)
+
+        self._update_button_styles()
+
+    def _create_header_panel(self) -> QWidget:
+        """Creates the top panel containing the title, mode, and control buttons."""
+        panel = QWidget()
+        panel_layout = QVBoxLayout(panel)
+        panel_layout.setContentsMargins(0, 0, 0, 10)
+
+        # --- Title ---
+        title = QLabel("Logging Control")
+        title.setStyleSheet("font-size: 24px; font-weight: bold;")
+        title.setAlignment(Qt.AlignCenter)
+        panel_layout.addWidget(title)
+
+        # --- Main Controls Layout (Horizontal) ---
+        main_controls_layout = QHBoxLayout()
+
+        # --- Left Side: Mode and Use Case ---
+        params_layout = QVBoxLayout()
+        params_layout.setAlignment(Qt.AlignTop)
+
+        mode_label = QLabel("Mode: <b>Continuous</b>")
+        mode_label.setStyleSheet("font-size: 16px; font-style: italic;")
+
+        use_case_layout = QHBoxLayout()
+        use_case_layout.addWidget(QLabel("Use Case:"))
+        self._use_case_combo = QComboBox()
+        self._use_case_combo.addItems([
+            "Real-time Visual Monitoring",
+            "Data Acquisition (Offline)",
+            "Threshold Alert Detection"
+        ])
+        use_case_layout.addWidget(self._use_case_combo)
+
+        params_layout.addWidget(mode_label)
+        params_layout.addLayout(use_case_layout)
+
+        main_controls_layout.addLayout(params_layout)
+        main_controls_layout.addStretch(1)
+
+        # --- Right Side: Start/Stop Buttons ---
+        self._start_button = QPushButton("Start Logging")
+        self._stop_button = QPushButton("Stop Logging")
+        buttons_layout = QVBoxLayout()
+        buttons_layout.addWidget(self._start_button)
+        buttons_layout.addWidget(self._stop_button)
+        main_controls_layout.addLayout(buttons_layout)
+
+        panel_layout.addLayout(main_controls_layout)
+
+        # --- File Saving Controls (Bottom) ---
+        self._sample_toggle = QCheckBox("Save Samples")
+        self._sample_toggle.setStyleSheet("font-size: 14px;")
+
+        file_controls_layout = QHBoxLayout()
+        self._path_line_edit = QLineEdit()
+        self._path_line_edit.setPlaceholderText("Select a file to save results...")
+        self._path_line_edit.setReadOnly(True)
+        browse_button = QPushButton("Browse...")
+
+        file_controls_layout.addWidget(self._sample_toggle)
+        file_controls_layout.addWidget(QLabel("Save Path:"))
+        file_controls_layout.addWidget(self._path_line_edit)
+        file_controls_layout.addWidget(browse_button)
+
+        panel_layout.addLayout(file_controls_layout)
+
+        browse_button.clicked.connect(self._on_browse_clicked)
+        return panel
+
+    def _create_sample_panel(self) -> QWidget:
+        panel = QWidget()
+        layout = QVBoxLayout(panel)
+        layout.setContentsMargins(0, 10, 10, 0)
+        title = QLabel("Last 10 Readings")
+        title.setStyleSheet("font-weight: bold; font-size: 14px; margin-bottom: 5px;")
+        self._history_list = QListWidget()
+        layout.addWidget(title)
+        layout.addWidget(self._history_list)
+        return panel
+
+    def _setup_chart_axes(self, chart: QChart):
+        """Configures and attaches axes to the chart."""
         self._axis_x = QValueAxis()
         self._axis_x.setLabelFormat("%.1f s")
         self._axis_x.setTitleText("Time (s)")
@@ -32,46 +159,138 @@ class LogsContinuousPage(QWidget):
         chart.addAxis(self._axis_y, Qt.AlignLeft)
         self._series.attachAxis(self._axis_y)
 
-        chart_view = QChartView(chart)
-        chart_view.setRenderHint(QPainter.Antialiasing)
-
-        layout = QVBoxLayout(self)
-        layout.addWidget(chart_view)
-
         self._start_time = time.time()
-        self._max_samples = 100  # Número máximo de puntos a mostrar
+        self._max_graph_points = 100  # Max points to show on the graph
 
     @Slot(dict)
     def add_sample(self, sample: dict):
-        """Añade una nueva muestra al gráfico."""
+        """Adds a new sample to the UI."""
+        if not self._is_logging:
+            return
+
+        self._samples.append(sample)
+        self._update_history_list()
+
         current_time = time.time() - self._start_time
         temp = sample.get("temp_mC", 0) / 1000.0
 
-        if self._series.count() > self._max_samples:
+        # --- Caso de Uso 3: Detección de Alertas ---
+        is_alert = bool(sample.get("flags", 0) & SIMTEMP_FLAG_THR_EDGE)
+        if is_alert:
+            # Cambia el color de la serie temporalmente si hay una alerta
+            alert_pen = self._series.pen()
+            alert_pen.setColor(Qt.red)
+            self._series.setPen(alert_pen)
+
+        if self._series.count() > self._max_graph_points:
             self._series.remove(0)
 
         self._series.append(current_time, temp)
+        self._update_axes(current_time, temp)
 
-        # Optimización: Solo ajustar los ejes si es necesario
-        # El eje X se puede desplazar automáticamente
-        if self._series.count() > self._max_samples:
-            # Si se eliminó un punto, el rango del eje X debe actualizarse
+        # Restaura el color original después de añadir el punto
+        if is_alert:
+            original_pen = self._series.pen()
+            original_pen.setColor(Qt.white) # O el color que uses por defecto
+            self._series.setPen(original_pen)
+
+        if self._sample_toggle.isChecked():
+            self._write_sample_to_file(sample)
+
+    def _update_history_list(self):
+        """Updates the list widget with the latest samples."""
+        self._history_list.clear()
+        for i, sample in enumerate(reversed(self._samples)):
+            temp_c = sample.get("temp_mC", 0) / 1000.0
+            is_alert = bool(sample.get("flags", 0) & SIMTEMP_FLAG_THR_EDGE)
+            prefix = "⚠️" if is_alert else ""
+            self._history_list.insertItem(0, f"{prefix} #{len(self._samples) - i}: {temp_c:.3f} °C")
+
+    def _update_axes(self, current_time: float, temp: float):
+        """Adjusts chart axes ranges for better visualization."""
+        if self._series.count() > self._max_graph_points:
             points = self._series.pointsVector()
             if points:
                 self._axis_x.setRange(points[0].x(), current_time)
         else:
-            # Si solo se añaden puntos, basta con extender el máximo del eje X
             if current_time > self._axis_x.max():
                 self._axis_x.setMax(current_time)
 
-        # Ajustar el eje Y solo si el nuevo valor está fuera del rango actual
         if temp < self._axis_y.min() or temp > self._axis_y.max():
             temps = [p.y() for p in self._series.pointsVector()]
             self._axis_y.setRange(min(temps) - 1, max(temps) + 1)
 
     def clear_data(self):
-        """Limpia todos los datos del gráfico."""
+        """Clears all data from the graph and list."""
         self._series.clear()
+        self._samples.clear()
+        self._history_list.clear()
         self._start_time = time.time()
         self._axis_x.setRange(0, 10)
         self._axis_y.setRange(20, 30)
+
+    def _on_start_clicked(self):
+        self.clear_data()
+        self._is_logging = True
+        self._update_button_styles()
+        self.start_logging_requested.emit()
+
+    def _on_stop_clicked(self):
+        self._is_logging = False
+        self._update_button_styles()
+        self.stop_logging_requested.emit()
+
+    def _update_button_styles(self):
+        """Updates the styles of the start/stop buttons based on logging state."""
+        running_style = "background-color: #2e7d32;"  # Green
+        stopped_style = "background-color: #c62828;"  # Red
+        self._start_button.setStyleSheet(running_style if self._is_logging else stopped_style)
+        self._stop_button.setStyleSheet(stopped_style if self._is_logging else running_style)
+
+    def _on_browse_clicked(self):
+        """Opens a dialog to select a file path for saving."""
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save Samples As",
+            str(Path.home() / "continuous_samples.csv"),
+            "CSV Files (*.csv);;Text Files (*.txt);;All Files (*)"
+        )
+        if file_path:
+            self._path_line_edit.setText(file_path)
+
+    def _on_sample_toggle_changed(self, checked: bool):
+        """Shows a pop-up to alert about enabling/disabling saving."""
+        file_path = self._path_line_edit.text()
+        if checked:
+            if not file_path:
+                QMessageBox.warning(self, "No File Selected", "Please select a file path before enabling storage.")
+                self._sample_toggle.setChecked(False)
+                return
+            message = f"Samples will be stored in:\n{file_path}"
+            path = Path(file_path)
+            if not path.exists():
+                try:
+                    with open(path, "w", encoding="utf-8") as f:
+                        f.write("timestamp_ns,temperature_c\n")
+                except OSError as e:
+                    QMessageBox.critical(self, "File Error", f"Could not write header to file:\n{e}")
+                    self._sample_toggle.setChecked(False)
+                    return
+        else:
+            message = "Sample storage is now OFF."
+        QMessageBox.information(self, "Sample Storage", message)
+
+    def _write_sample_to_file(self, sample: dict):
+        """Appends a single sample to the log file."""
+        file_path = self._path_line_edit.text()
+        if not file_path:
+            return
+
+        temp_c = sample.get("temp_mC", 0) / 1000.0
+        timestamp_ns = sample.get("timestamp_ns", 0)
+        line = f"{timestamp_ns},{temp_c:.3f}\n"
+        try:
+            with open(file_path, "a", encoding="utf-8") as f:
+                f.write(line)
+        except OSError as e:
+            print(f"Error writing to file: {e}")
