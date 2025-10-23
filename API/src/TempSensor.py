@@ -124,6 +124,17 @@ class TempSensor:
         """Close the underlying device descriptor."""
         self._driver.close()
 
+    def start(self) -> None:
+        """Start the driver using the current configuration."""
+        self._ensure_open()
+        self._driver.start()
+
+    def stop(self) -> None:
+        """Stop the driver if it is running."""
+        if not self._driver.is_open:
+            return
+        self._driver.stop()
+
     def read_once(self, *, timeout: float = 1.0) -> SimTempSample:
         """
         Perform a one-shot measurement and return the resulting sample.
@@ -133,10 +144,19 @@ class TempSensor:
             SimTempError: for driver-level failures.
         """
         self._ensure_open()
-        
+
         # Optimización: Guardar estado, configurar para lectura rápida y restaurar después.
+        try:
+            original_mode = self._driver.get_operation_mode()
+        except SimTempError:
+            original_mode = None
+        try:
+            was_running = self._driver.get_state() == DriverState.RUN
+        except SimTempError:
+            was_running = False
+
         original_period = self._driver.get_sampling_period_ms()
-        min_period = 5 # El mínimo soportado por el driver
+        min_period = 5  # El mínimo soportado por el driver
 
         try:
             self._driver.stop()
@@ -151,6 +171,10 @@ class TempSensor:
                 self._driver.stop()
                 if original_period != min_period:
                     self._driver.set_sampling_period_ms(original_period)
+                if original_mode is not None:
+                    self._driver.set_operation_mode(original_mode)
+                if was_running and original_mode == OperationMode.CONTINUOUS:
+                    self._driver.start()
             except SimTempError:
                 # Ignore stop failures so the original exception, if any, surfaces.
                 pass
@@ -180,17 +204,18 @@ class TempSensor:
             SimTempError: for driver-level failures.
         """
         self._ensure_open()
-        self._driver.stop()
-        self._driver.set_operation_mode(OperationMode.CONTINUOUS)
-        self._driver.start()
-        yielded = 0
+        # This method assumes the driver is already configured for continuous mode
+        # and started. The `finally` block ensures it's stopped afterward.
+        count = 0
         try:
-            while limit is None or yielded < limit:
+            while limit is None or count < limit:
                 sample = self._driver.read_sample(timeout=timeout)
-                yielded += 1
                 yield sample
+                count += 1
         finally:
-            self._driver.stop()
+            # Stop is handled by the calling context (e.g., _ContinuousStreamWorker)
+            # to avoid stopping prematurely if the generator is just paused.
+            pass
 
     def iter_samples(
         self,

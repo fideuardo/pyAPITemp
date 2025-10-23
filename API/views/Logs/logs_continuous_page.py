@@ -13,7 +13,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt, Slot, Signal
 from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
-from PySide6.QtGui import QPainter
+from PySide6.QtGui import QPainter, QIntValidator
 from kernel.apitest.LxDrTemp import SIMTEMP_FLAG_THR_EDGE
 from pathlib import Path
 from collections import deque
@@ -22,7 +22,7 @@ import time
 
 class LogsContinuousPage(QWidget):
     """View for displaying and controlling continuous data logging."""
-    start_logging_requested = Signal()
+    start_logging_requested = Signal(dict)
     stop_logging_requested = Signal()
 
     def __init__(self, parent=None):
@@ -60,11 +60,8 @@ class LogsContinuousPage(QWidget):
 
         self._setup_chart_axes(chart)
 
-        self._start_button.clicked.connect(self._on_start_clicked)
-        self._stop_button.clicked.connect(self._on_stop_clicked)
+        self._stateButton.clicked.connect(self._on_state_button_clicked)
         self._sample_toggle.toggled.connect(self._on_sample_toggle_changed)
-
-        self._update_button_styles()
 
     def _create_header_panel(self) -> QWidget:
         """Creates the top panel containing the title, mode, and control buttons."""
@@ -98,19 +95,33 @@ class LogsContinuousPage(QWidget):
         ])
         use_case_layout.addWidget(self._use_case_combo)
 
+        # --- Init Settings Layout ---
+        settings_layout = QHBoxLayout()
+        
+        # --- Period ---
+        self._periodLabel = QLabel("Period [ms]:")
+        self._period = QLineEdit("100")
+        self._period.setValidator(QIntValidator(0, 5000, self)) # Range from 5 to 5000
+        
+        #--- Sampling Time ---
+        self._samplingTimeLabel = QLabel("Sampling Time [ms]:")
+        self._samplingTime = QLineEdit("1000") # Default value
+        self._samplingTime.setValidator(QIntValidator(0, 100000, self)) # Range from 1 to 10000
+        
+        #--- ThresHold ----
+        #---       Settings Layout   ---
+        settings_layout.addWidget(self._periodLabel)
+        settings_layout.addWidget(self._period)
+
+        settings_layout.addWidget(self._samplingTimeLabel)
+        settings_layout.addWidget(self._samplingTime)
+
         params_layout.addWidget(mode_label)
         params_layout.addLayout(use_case_layout)
+        params_layout.addLayout(settings_layout)
 
         main_controls_layout.addLayout(params_layout)
         main_controls_layout.addStretch(1)
-
-        # --- Right Side: Start/Stop Buttons ---
-        self._start_button = QPushButton("Start Logging")
-        self._stop_button = QPushButton("Stop Logging")
-        buttons_layout = QVBoxLayout()
-        buttons_layout.addWidget(self._start_button)
-        buttons_layout.addWidget(self._stop_button)
-        main_controls_layout.addLayout(buttons_layout)
 
         panel_layout.addLayout(main_controls_layout)
 
@@ -130,6 +141,15 @@ class LogsContinuousPage(QWidget):
         file_controls_layout.addWidget(browse_button)
 
         panel_layout.addLayout(file_controls_layout)
+
+        # --- Control Section ---
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addStretch(1)
+        self._stateButton = QPushButton()
+        buttons_layout.addWidget(self._stateButton)
+        buttons_layout.addStretch(1)
+        panel_layout.addLayout(buttons_layout)
+        self._update_state_button_style() # Set initial state
 
         browse_button.clicked.connect(self._on_browse_clicked)
         return panel
@@ -169,7 +189,7 @@ class LogsContinuousPage(QWidget):
             return
 
         self._samples.append(sample)
-        self._update_history_list()
+        self._add_sample_to_history_list(sample)
 
         current_time = time.time() - self._start_time
         temp = sample.get("temp_mC", 0) / 1000.0
@@ -197,15 +217,16 @@ class LogsContinuousPage(QWidget):
         if self._sample_toggle.isChecked():
             self._write_sample_to_file(sample)
 
-    def _update_history_list(self):
-        """Updates the list widget with the latest samples."""
-        self._history_list.clear()
-        for i, sample in enumerate(reversed(self._samples)):
-            temp_c = sample.get("temp_mC", 0) / 1000.0
-            is_alert = bool(sample.get("flags", 0) & SIMTEMP_FLAG_THR_EDGE)
-            prefix = "⚠️" if is_alert else ""
-            self._history_list.insertItem(0, f"{prefix} #{len(self._samples) - i}: {temp_c:.3f} °C")
-
+    def _add_sample_to_history_list(self, sample: dict):
+        """Adds a single sample to the top of the history list."""
+        temp_c = sample.get("temp_mC", 0) / 1000.0
+        is_alert = bool(sample.get("flags", 0) & SIMTEMP_FLAG_THR_EDGE)
+        prefix = "⚠️ " if is_alert else ""
+        
+        self._history_list.insertItem(0, f"{prefix}{temp_c:.3f} °C")
+        
+        if self._history_list.count() > self._samples.maxlen:
+            self._history_list.takeItem(self._history_list.count() - 1)
     def _update_axes(self, current_time: float, temp: float):
         """Adjusts chart axes ranges for better visualization."""
         if self._series.count() > self._max_graph_points:
@@ -229,23 +250,37 @@ class LogsContinuousPage(QWidget):
         self._axis_x.setRange(0, 10)
         self._axis_y.setRange(20, 30)
 
-    def _on_start_clicked(self):
-        self.clear_data()
-        self._is_logging = True
-        self._update_button_styles()
-        self.start_logging_requested.emit()
+    def _on_state_button_clicked(self):
+        """Toggles the logging state when the state button is clicked."""
+        self._is_logging = not self._is_logging
 
-    def _on_stop_clicked(self):
-        self._is_logging = False
-        self._update_button_styles()
-        self.stop_logging_requested.emit()
+        if self._is_logging:
+            # --- Get settings from UI and emit request ---
+            self.clear_data()
+            try:
+                settings = {
+                    "operation_mode": "continuous",
+                    "simulation_mode": "normal",
+                    "sampling_period_ms": int(self._period.text()),
+                    "threshold_mc": 0,
+                }
+                self.start_logging_requested.emit(settings)
+            except ValueError:
+                QMessageBox.critical(self, "Invalid Input", "Please ensure all settings are valid numbers.")
+                self._is_logging = False # Revert state
+        else:
+            self.stop_logging_requested.emit()
+        
+        self._update_state_button_style()
 
-    def _update_button_styles(self):
-        """Updates the styles of the start/stop buttons based on logging state."""
-        running_style = "background-color: #2e7d32;"  # Green
-        stopped_style = "background-color: #c62828;"  # Red
-        self._start_button.setStyleSheet(running_style if self._is_logging else stopped_style)
-        self._stop_button.setStyleSheet(stopped_style if self._is_logging else running_style)
+    def _update_state_button_style(self):
+        """Updates the text and color of the state button based on the logging state."""
+        if self._is_logging:
+            self._stateButton.setText("Stop")
+            self._stateButton.setStyleSheet("background-color: #c62828; color: white;") # Red
+        else:
+            self._stateButton.setText("Start")
+            self._stateButton.setStyleSheet("background-color: #2e7d32; color: white;") # Green
 
     def _on_browse_clicked(self):
         """Opens a dialog to select a file path for saving."""
