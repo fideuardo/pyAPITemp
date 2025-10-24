@@ -8,7 +8,7 @@ on:
 jobs:
   send-email:
     # Only run if the PR was merged AND the head branch matches the release format (e.g., 'release/v1.2.3')
-    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/v')
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'drelease/v')
     # Best practice: define explicit permissions for the job
     permissions:
       contents: read # Only need to read repo contents, no write needed
