@@ -33,6 +33,6 @@ jobs:
             Repository: ${{ github.repository }}
             Merged by: ${{ github.event.pull_request.merged_by.login }}
             URL: ${{ github.event.pull_request.html_url }}
-            Merge Commit: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
-            Driver Documentation available at https://github.com/${{ github.repository }}/tree/${{ github.event.pull_request.merge_commit_sha }}/kernel/docs (manual download required).
+            Merge Commit: ${{ github.event.pull_request.merge_commit_sha || github.event.pull_request.head.sha }}
+            Driver Documentation available at https://github.com/${{ github.repository }}/tree/${{ github.event.pull_request.merge_commit_sha || github.event.pull_request.head.sha }}/kernel/docs (manual download required).
             video: https://drive.google.com/file/d/1_47SzWyVgFcC9ekai40h0w_B3ducMeWN/view?usp=drive_link
