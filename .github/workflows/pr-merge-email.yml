@@ -25,13 +25,14 @@ jobs:
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
           subject: >
-            [${{ github.repository }}] PR #${{ github.event.pull_request.number }}: "${{ github.event.pull_request.title }}" was released
+            [${{ github.repository }}] PR #${{ github.event.pull_request.number }}: "${{ github.event.pull_request.title }}" has been released
           to: ${{ secrets.NOTIFY_EMAIL }}
           from: ${{ secrets.NOTIFY_EMAIL_FROM }}
           body: |
-            The pull request #${{ github.event.pull_request.number }} ("${{ github.event.pull_request.title }}") from branch '${{ github.event.pull_request.head.ref }}' has been merged into '${{ github.event.pull_request.base.ref }}'. Documentation updated at Kerndel/docs.
+            The pull request #${{ github.event.pull_request.number }} ("${{ github.event.pull_request.title }}") from branch '${{ github.event.pull_request.head.ref }}' has been merged into '${{ github.event.pull_request.base.ref }}'. 
             Repository: ${{ github.repository }}
             Merged by: ${{ github.event.pull_request.merged_by.login }}
             URL: ${{ github.event.pull_request.html_url }}
-            Merge Commit: ${{ github.event.pull_request.merge_commit_sha }}
+            Merge Commit: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
+            Driver Documentation available at https://github.com/${{ github.repository }}/tree/${{ github.event.pull_request.merge_commit_sha }}/kernel/docs (manual download required).
             video: https://drive.google.com/file/d/1_47SzWyVgFcC9ekai40h0w_B3ducMeWN/view?usp=drive_link
