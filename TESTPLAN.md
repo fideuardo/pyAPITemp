@@ -86,11 +86,13 @@ Artifacts to collect:
 - Recorded automation and environment instructions duplicated in `kernel/README.md` and packaging README.
 
 ## 8. Test Evidence Summary
-Recent execution logs captured during development (see session transcripts) include:
-- **Kernel build outputs** showing successful compilation of `simtemp.ko`, `simtemp_pdev_stub.ko`, and `simtemp.dtbo` via `make` on Raspberry Pi (`6.12.47+rpt-rpi-v8`).
-- **Self-test harness** runs (`kernel/scripts/run_selftest.sh`) demonstrating overlay refresh, module load, `apitest --test` PASS results, stats reporting, and clean unload.
-- **Manual CLI tests** on the Pi (`apitest /dev/nxp_simtemp --test`) confirming threshold alerts (`flags=0x00020001`).
-- **Automation script packaging** logs (`scripts/create_simtemp_rpi_package.sh`) verifying installer/uninstaller generation.
-- **Overlay application diagnostics** (dtoverlay success/failure messages) validating handling for pre-configured overlays.
+Recent execution evidence captured on Raspberry Pi 64-bit (kernel `6.12.47+rpt-rpi-v8`):
+- **AT-01 / FT-01-02** — `scripts/build.sh` rebuilt `simtemp.ko`, `simtemp_pdev_stub.ko`, and `simtemp.dtbo` with no warnings.
+- **AT-03** — `scripts/lint.sh` validated the Python code; it noted that `shellcheck`/`clang-format` were absent but still exited with status 0.
+- **AT-02 / FT-03-04-08-10** — `scripts/run_demo.sh` executed the automated self-test (`apitest --test`), reported `flags=0x00020001`, and removed the module afterward.
+- **AT-04** — `scripts/create_simtemp_rpi_package.sh` produced `dist/simtemp-rpi-6.12.47+rpt-rpi-v8.tar.gz`.
+- **Package installation** — `sudo dist/simtemp-rpi-6.12.47+rpt-rpi-v8/install.sh` updated PySide6 (6.7.3), installed the udev rules, verified `dtoverlay=simtemp`, and left the GUI ready under `/opt/simtemp-ui`.
+- **GT-01/02** — Running `API_SimTemp` in continuous mode showed a stable ~25 °C stream and an active threshold alert; the screenshot is archived at `dist/evidence/Captura desde 2025-10-24 04-21-06.png`.
+- **High-rate sampling check** — A 5 ms run covering 151 samples (~0.75 s) produced 24.903–25.099 °C readings with a 24.998 °C mean (σ ≈ 0.058 °C) and 4.9999 ms average period, demonstrating the hrtimer’s precision at 200 Hz. Raw measurements live in `dist/evidence/continuous_samples2.csv`.
 
-These logs serve as evidence for FT-02/03/04/08/10 and AT-01/02/03 coverage. Additional screenshots or dmesg snippets should be archived alongside release notes when preparing for formal review.
+These records cover the primary FT and AT items for the latest build. When preparing a formal release, attach dmesg snippets and refreshed screenshots to the evidence bundle.
