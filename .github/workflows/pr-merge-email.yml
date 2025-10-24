@@ -65,9 +65,9 @@ jobs:
             Merge Commit: ${{ github.event.pull_request.merge_commit_sha }}
 
       - name: Build and package application
-        # This step packages the output driver files and the main README file.
+        # This step packages the main README file.
         run: |
-          zip -r pyAPITemp-release.zip Driver README.md
+          zip -r pyAPITemp-release.zip README.md
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
