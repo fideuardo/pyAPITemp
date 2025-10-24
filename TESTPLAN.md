@@ -84,3 +84,13 @@ Artifacts to collect:
 - Requirements cross-check: see matrix in `kernel/docs/Requirements/Requirements.md` and the functional coverage table above.
 - Detailed historical MTS document: `kernel/docs/MTS_SimTemp.md`.
 - Recorded automation and environment instructions duplicated in `kernel/README.md` and packaging README.
+
+## 8. Test Evidence Summary
+Recent execution logs captured during development (see session transcripts) include:
+- **Kernel build outputs** showing successful compilation of `simtemp.ko`, `simtemp_pdev_stub.ko`, and `simtemp.dtbo` via `make` on Raspberry Pi (`6.12.47+rpt-rpi-v8`).
+- **Self-test harness** runs (`kernel/scripts/run_selftest.sh`) demonstrating overlay refresh, module load, `apitest --test` PASS results, stats reporting, and clean unload.
+- **Manual CLI tests** on the Pi (`apitest /dev/nxp_simtemp --test`) confirming threshold alerts (`flags=0x00020001`).
+- **Automation script packaging** logs (`scripts/create_simtemp_rpi_package.sh`) verifying installer/uninstaller generation.
+- **Overlay application diagnostics** (dtoverlay success/failure messages) validating handling for pre-configured overlays.
+
+These logs serve as evidence for FT-02/03/04/08/10 and AT-01/02/03 coverage. Additional screenshots or dmesg snippets should be archived alongside release notes when preparing for formal review.
