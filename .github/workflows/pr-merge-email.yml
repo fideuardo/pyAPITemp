@@ -8,7 +8,7 @@ on:
 jobs:
   send-email:
     # Only run if the PR was merged AND the head branch matches the release format (e.g., 'release/v1.2.3')
-    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'drelease/v')
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/v')
     # Best practice: define explicit permissions for the job
     permissions:
       contents: read # Only need to read repo contents, no write needed
@@ -29,8 +29,9 @@ jobs:
           to: ${{ secrets.NOTIFY_EMAIL }}
           from: ${{ secrets.NOTIFY_EMAIL_FROM }}
           body: |
-            The pull request #${{ github.event.pull_request.number }} ("${{ github.event.pull_request.title }}") from branch '${{ github.event.pull_request.head.ref }}' has been merged into '${{ github.event.pull_request.base.ref }}'.
+            The pull request #${{ github.event.pull_request.number }} ("${{ github.event.pull_request.title }}") from branch '${{ github.event.pull_request.head.ref }}' has been merged into '${{ github.event.pull_request.base.ref }}'. Documentation updated at Kerndel/docs.
             Repository: ${{ github.repository }}
             Merged by: ${{ github.event.pull_request.merged_by.login }}
             URL: ${{ github.event.pull_request.html_url }}
             Merge Commit: ${{ github.event.pull_request.merge_commit_sha }}
+            video: https://drive.google.com/file/d/1_47SzWyVgFcC9ekai40h0w_B3ducMeWN/view?usp=drive_link
