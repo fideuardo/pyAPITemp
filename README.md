@@ -61,6 +61,14 @@ source .venv/bin/activate
 pip install PySide6
 ```
 
+## Helper Scripts
+
+The repository includes convenience scripts in `scripts/`:
+
+- `scripts/build.sh`: wraps the kernel build system. Use `--target rpi --kdir <path>` to cross-compile, or run without arguments to build natively.
+- `scripts/run_demo.sh`: builds (unless `--skip-build`) and launches the automated kernel demo that exercises the self-test flow.
+- `scripts/lint.sh`: runs lightweight lint checks on Python sources, shell scripts, and optionally C files (if `clang-format` is available).
+
 ## Usage
 
 To run the application, load the kernel module first and then start the GUI.
