@@ -30,7 +30,6 @@ jobs:
           from: ${{ secrets.NOTIFY_EMAIL_FROM }}
           body: |
             The pull request #${{ github.event.pull_request.number }} ("${{ github.event.pull_request.title }}") from branch '${{ github.event.pull_request.head.ref }}' has been merged into '${{ github.event.pull_request.base.ref }}'.
-
             Repository: ${{ github.repository }}
             Merged by: ${{ github.event.pull_request.merged_by.login }}
             URL: ${{ github.event.pull_request.html_url }}
