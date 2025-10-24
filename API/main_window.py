@@ -1,11 +1,11 @@
 from PySide6.QtWidgets import QMainWindow, QSplitter, QWidget, QMessageBox
-from PySide6.QtCore import Qt, QThread, Signal
+from PySide6.QtCore import Qt, QThread, Signal, Slot
 
 from dataclasses import asdict
 import selectors
 import threading
 from API.src.TempSensor import TempSensor
-from kernel.apitest.LxDrTemp import SimTempError, SimTempTimeoutError
+from kernel.apitest.LxDrTemp import SIMTEMP_FLAG_THR_EDGE, SimTempError, SimTempTimeoutError
 
 from API.views.side_menu import SideMenu
 from API.views.work_area import WorkArea
@@ -88,6 +88,7 @@ class MainWindow(QMainWindow):
 
         self.temperature = TempSensor()
         self._stream_worker = _ContinuousStreamWorker(self.temperature, self)
+        self._current_threshold_mc = 0
 
         self.splitter = QSplitter(Qt.Horizontal, self)
         self.side_menu = SideMenu()
@@ -102,7 +103,13 @@ class MainWindow(QMainWindow):
         self.side_menu.setMaximumWidth(320)
         self.setCentralWidget(self.splitter)
         self.work_area.set_welcome_page_info(api_information, self.temperature.info) # Pasa la info del sensor
-        self.work_area.set_settings_page_info(self.temperature.driverconfig)
+        driver_config = self.temperature.driverconfig
+        self.work_area.set_settings_page_info(driver_config)
+        try:
+            threshold_value = driver_config.get("threshold_mc")
+            self._current_threshold_mc = int(threshold_value) if threshold_value is not None else 0
+        except (TypeError, ValueError):
+            self._current_threshold_mc = 0
 
         self.side_menu.signal_show_welcome.connect(lambda: self.work_area.goto("welcome"))
         self.side_menu.signal_show_settings.connect(lambda: self.work_area.goto("settings"))
@@ -117,7 +124,7 @@ class MainWindow(QMainWindow):
         #side menu
         self.side_menu.signal_toggle_menu.connect(self._toggle_menu_width)
 
-        self._stream_worker.sample_ready.connect(self.work_area.on_continuous_sample_received)
+        self._stream_worker.sample_ready.connect(self._handle_continuous_sample)
 
         self._stream_worker.error.connect(self._handle_stream_error)
 
@@ -131,6 +138,7 @@ class MainWindow(QMainWindow):
         """Applies settings and starts continuous logging."""
         self._stream_worker.stop_stream()
         self.temperature.stop()
+        self.work_area.set_threshold_indicator(False)
         self._apply_driver_settings(settings)
         try:
             if not self.temperature.driver.is_open:
@@ -145,6 +153,13 @@ class MainWindow(QMainWindow):
             return
 
         self._stream_worker.start_stream()
+        self.work_area.set_threshold_indicator(False)
+        threshold_setting = settings.get("threshold_mc")
+        if threshold_setting is not None:
+            try:
+                self._current_threshold_mc = int(threshold_setting)
+            except (TypeError, ValueError):
+                pass
 
     def _handle_read_now(self):
         """Maneja la solicitud de lectura one-shot desde la UI."""
@@ -175,7 +190,9 @@ class MainWindow(QMainWindow):
                 elif key == "sampling_period_ms":
                     self.temperature.set_sampling_period_ms(int(value))
                 elif key == "threshold_mc":
-                    self.temperature.set_threshold_mc(int(value))
+                    threshold_value = int(value)
+                    self.temperature.set_threshold_mc(threshold_value)
+                    self._current_threshold_mc = threshold_value
             except SimTempError as exc:
                 errors.append(f"{key}: {exc}")
                 
@@ -207,6 +224,8 @@ class MainWindow(QMainWindow):
                 "Aviso",
                 f"No se pudo detener el driver correctamente: {exc}",
             )
+        finally:
+            self.work_area.set_threshold_indicator(False)
 
     def _handle_stream_error(self, message: str) -> None:
         self._stream_worker.stop_stream()
@@ -215,6 +234,22 @@ class MainWindow(QMainWindow):
         except SimTempError:
             pass
         QMessageBox.critical(self, "Lectura continua", message)
+        self.work_area.set_threshold_indicator(False)
+
+    @Slot(dict)
+    def _handle_continuous_sample(self, sample: dict) -> None:
+        self.work_area.on_continuous_sample_received(sample)
+        flags = sample.get("flags", 0)
+        temp_mc = sample.get("temp_mC")
+        threshold = self._current_threshold_mc
+        above_threshold = (
+            isinstance(temp_mc, (int, float))
+            and isinstance(threshold, (int, float))
+            and threshold > 0
+            and temp_mc >= threshold
+        )
+        is_alert = bool(flags & SIMTEMP_FLAG_THR_EDGE) or above_threshold
+        self.work_area.set_threshold_indicator(is_alert)
 
     def closeEvent(self, event) -> None:
         self._stream_worker.stop_stream()
@@ -223,4 +258,5 @@ class MainWindow(QMainWindow):
         except SimTempError:
             pass
         self.temperature.close()
+        self.work_area.set_threshold_indicator(False)
         super().closeEvent(event)

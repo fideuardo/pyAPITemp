@@ -75,3 +75,6 @@ class  WorkArea(QWidget):
     def on_continuous_sample_received(self, sample: dict):
         """Pasa la muestra continua recibida a la página de logs."""
         self._logs_main_page.on_continuous_sample_received(sample)
+
+    def set_threshold_indicator(self, active: bool) -> None:
+        self._logs_main_page.set_threshold_indicator(active)

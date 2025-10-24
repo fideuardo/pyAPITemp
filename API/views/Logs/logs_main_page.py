@@ -56,3 +56,7 @@ class LogsMainPage(QWidget):
     @Slot(dict)
     def on_continuous_sample_received(self, sample: dict):
         self._continuous_panel.add_sample(sample)
+
+    @Slot(bool)
+    def set_threshold_indicator(self, active: bool) -> None:
+        self._continuous_panel.set_threshold_indicator(active)

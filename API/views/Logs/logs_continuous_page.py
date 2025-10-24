@@ -18,6 +18,7 @@ from PySide6.QtGui import QPainter, QIntValidator
 from kernel.apitest.LxDrTemp import SIMTEMP_FLAG_THR_EDGE
 from pathlib import Path
 from collections import deque
+from typing import Optional
 import time
 
 
@@ -33,6 +34,9 @@ class LogsContinuousPage(QWidget):
         self._sampling_timer = QTimer(self)
         self._sampling_timer.setSingleShot(True)
         self._sampling_timer.timeout.connect(self.__expiredtime)
+        self._indicator_off_color = "#2c313c"
+        self._indicator_on_color = "#c62828"
+        self._indicator_active: Optional[bool] = None
 
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignTop)
@@ -110,6 +114,9 @@ class LogsContinuousPage(QWidget):
                                        "noisy",
                                        "ramp",])
         #--- ThresHold ----
+        self._thresholdLabel = QLabel("ThresHold [mC]:")
+        self._threshold = QLineEdit("0") # Default value
+        self._threshold.setValidator(QIntValidator(0, 100000, self)) # Range from 1 to 10000
         #---       Settings Layout   ---
         settings_layout.addWidget(self._periodLabel)
         settings_layout.addWidget(self._period)
@@ -119,6 +126,8 @@ class LogsContinuousPage(QWidget):
 
         settings_layout.addWidget(self._simulationModeLabel)
         settings_layout.addWidget(self._simulationMode)
+        settings_layout.addWidget(self._thresholdLabel)
+        settings_layout.addWidget(self._threshold)
 
         params_layout.addWidget(mode_label)
         params_layout.addLayout(settings_layout)
@@ -163,10 +172,30 @@ class LogsContinuousPage(QWidget):
         layout.setContentsMargins(0, 10, 10, 0)
         title = QLabel("Last 10 Readings")
         title.setStyleSheet("font-weight: bold; font-size: 14px; margin-bottom: 5px;")
+        indicator_layout = QHBoxLayout()
+        indicator_layout.setContentsMargins(0, 0, 0, 0)
+        indicator_layout.setSpacing(6)
+        self._status_indicator = QLabel()
+        self._status_indicator.setFixedSize(14, 14)
+        self.set_threshold_indicator(False)
+        indicator_layout.addWidget(self._status_indicator, alignment=Qt.AlignLeft)
+        indicator_layout.addWidget(QLabel("Threshold Alert"), alignment=Qt.AlignLeft)
+        indicator_layout.addStretch(1)
+        layout.addLayout(indicator_layout)
         self._history_list = QListWidget()
         layout.addWidget(title)
         layout.addWidget(self._history_list)
         return panel
+
+    def _set_indicator_color(self, color: str) -> None:
+        self._status_indicator.setStyleSheet(
+            f"""
+            QLabel {{
+                border-radius: 7px;
+                background-color: {color};
+            }}
+            """
+        )
 
     def _setup_chart_axes(self, chart: QChart):
         """Configures and attaches axes to the chart."""
@@ -211,7 +240,6 @@ class LogsContinuousPage(QWidget):
         self._series.append(current_time, temp)
         self._update_axes(current_time, temp)
 
-        # Restaura el color original después de añadir el punto
         if is_alert:
             original_pen = self._series.pen()
             original_pen.setColor(Qt.white) # O el color que uses por defecto
@@ -225,8 +253,6 @@ class LogsContinuousPage(QWidget):
         temp_c = sample.get("temp_mC", 0) / 1000.0
         is_alert = bool(sample.get("flags", 0) & SIMTEMP_FLAG_THR_EDGE)
         prefix = "⚠️ " if is_alert else ""
-
-        
         self._history_list.insertItem(0, f"{prefix}{temp_c:.3f} °C")
         
         if self._history_list.count() > self._samples.maxlen:
@@ -268,12 +294,20 @@ class LogsContinuousPage(QWidget):
                     "sampling_period_ms": int(self._period.text()),
                     "threshold_mc": 0,
                 }
+                #Config Threshold
+                threshold = int(self._threshold.text())
+                if threshold < 0:
+                    raise ValueError("Threshold must be zero or greater.")
+                settings["threshold_mc"] = threshold
+                
+                #Config Sampling Time
                 sampling_time = int(self._samplingTime.text())
                 if sampling_time < 0:
                     raise ValueError("Sampling time must be zero or greater.")
                 self._sampling_timer.stop()
                 if sampling_time > 0:
                     self._sampling_timer.start(sampling_time)
+                self.set_threshold_indicator(False)
 
                 self.start_logging_requested.emit(settings)
             except ValueError:
@@ -282,6 +316,7 @@ class LogsContinuousPage(QWidget):
         else:
             self._sampling_timer.stop()
             self.stop_logging_requested.emit()
+            self.set_threshold_indicator(False)
         
         self._update_state_button_style()
     
@@ -292,6 +327,7 @@ class LogsContinuousPage(QWidget):
         self._is_logging = False # Actualiza el estado primero
         self.stop_logging_requested.emit()
         self._update_state_button_style()
+        self.set_threshold_indicator(False)
 
     def _update_state_button_style(self):
         """Updates the text and color of the state button based on the logging state."""
@@ -311,6 +347,7 @@ class LogsContinuousPage(QWidget):
         self._is_logging = False
         self.stop_logging_requested.emit()
         self._update_state_button_style()
+        self.set_threshold_indicator(False)
 
     def _on_browse_clicked(self):
         """Opens a dialog to select a file path for saving."""
@@ -359,3 +396,12 @@ class LogsContinuousPage(QWidget):
                 f.write(line)
         except OSError as e:
             print(f"Error writing to file: {e}")
+
+    @Slot(bool)
+    def set_threshold_indicator(self, active: bool) -> None:
+        if not hasattr(self, "_status_indicator"):
+            return
+        if self._indicator_active is not None and self._indicator_active == active:
+            return
+        self._indicator_active = active
+        self._set_indicator_color(self._indicator_on_color if active else self._indicator_off_color)
