@@ -7,9 +7,35 @@ on:
 
 jobs:
   send-email:
-    if: github.event.pull_request.merged == true
+    # Only run if the PR was merged AND the head branch matches the release format (e.g., 'release/v1.2.3')
+    if: >
+      github.event.pull_request.merged == true &&
+      contains(github.event.pull_request.head.ref, 'release/v')
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create and Push Git Tag
+        # This step will fail if the branch name doesn't match the regex, acting as a validation
+        run: |
+          # Validate and extract tag name from branch name (e.g., 'release/v1.2.3' -> 'v1.2.3')
+          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
+          if [[ ! "$BRANCH_NAME" =~ ^release/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: Branch name '$BRANCH_NAME' does not match the required format 'release/vA.B.C'."
+            exit 1
+          fi
+          TAG_NAME=$(echo "$BRANCH_NAME" | sed 's/release\///')
+          echo "Creating and pushing tag: $TAG_NAME"
+          
+          # Configure git with a user to be able to create the tag
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Create an annotated tag on the merge commit
+          git tag -a "$TAG_NAME" -m "Release $TAG_NAME" "${{ github.event.pull_request.merge_commit_sha }}"
+          git push origin "$TAG_NAME"
+
       - name: Send email notification
         uses: dawidd6/action-send-mail@v3
         with:
@@ -18,8 +44,7 @@ jobs:
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
           subject: >
-            PR #${{ github.event.pull_request.number }} merged into
-            ${{ github.event.pull_request.base.ref }}
+            [${{ github.repository }}] PR #${{ github.event.pull_request.number }}: "${{ github.event.pull_request.title }}" was merged
           to: ${{ secrets.NOTIFY_EMAIL }}
           from: ${{ secrets.NOTIFY_EMAIL_FROM }}
           body: |
