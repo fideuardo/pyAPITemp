@@ -6,7 +6,7 @@ set -euo pipefail
 RULE_FILE="/etc/udev/rules.d/99-nxp-simtemp.rules"
 TARGET_GROUP="${SIMTEMP_GROUP:-plugdev}"
 TARGET_USER="${SIMTEMP_USER:-${SUDO_USER:-}}"
-PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+PROJECT_ROOT="${SIMTEMP_PROJECT_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 log() {
     printf '[simtemp-setup] %s\n' "$*"
