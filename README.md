@@ -1,4 +1,5 @@
-# pyAPITemp
+# pyAPITemp: Python Application Temperature Control Panel (NXP Challenge)
+
 
 **pyAPITemp** is an instrument control panel developed in Python with PySide6. This graphical user interface lets you interact in real time with the `simtemp` Linux kernel driver, a simulated temperature sensor.
 
