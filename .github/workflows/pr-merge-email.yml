@@ -8,39 +8,14 @@ on:
 jobs:
   send-email:
     # Only run if the PR was merged AND the head branch matches the release format (e.g., 'release/v1.2.3')
-    if: >
-      github.event.pull_request.merged == true &&
-      startsWith(github.event.pull_request.head.ref, 'release/v')
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/v')
     # Best practice: define explicit permissions for the job
     permissions:
-      contents: write # Required to push a git tag
+      contents: read # Only need to read repo contents, no write needed
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-
-      - name: Create and Push Git Tag
-        id: tag_version # Give an ID to this step to reference its outputs
-        # This step will fail if the branch name doesn't match the regex, acting as a validation
-        run: |
-          # Validate and extract tag name from branch name (e.g., 'release/v1.2.3' -> 'v1.2.3')
-          BRANCH_NAME="${{ github.event.pull_request.head.ref }}"
-          if [[ ! "$BRANCH_NAME" =~ ^release/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Error: Branch name '$BRANCH_NAME' does not match the required format 'release/vA.B.C'."
-            exit 1
-          fi
-          TAG_NAME=$(echo "$BRANCH_NAME" | sed 's/release\///')
-          # Set the tag name as an output for other steps to use
-          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
-          echo "Creating and pushing tag: $TAG_NAME"
-          
-          # Configure git with a user to be able to create the tag
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          
-          # Create an annotated tag on the merge commit
-          git tag -a "$TAG_NAME" -m "Release $TAG_NAME" "${{ github.event.pull_request.merge_commit_sha }}"
-          git push origin "$TAG_NAME"
 
       - name: Send email notification
         uses: dawidd6/action-send-mail@v3
@@ -54,29 +29,9 @@ jobs:
           to: ${{ secrets.NOTIFY_EMAIL }}
           from: ${{ secrets.NOTIFY_EMAIL_FROM }}
           body: |
-            The pull request #${{ github.event.pull_request.number }} ("${{ github.event.pull_request.title }}") has been merged into the '${{ github.event.pull_request.base.ref }}' branch.
-
-            A new release tag has been created automatically.
+            The pull request #${{ github.event.pull_request.number }} ("${{ github.event.pull_request.title }}") from branch '${{ github.event.pull_request.head.ref }}' has been merged into '${{ github.event.pull_request.base.ref }}'.
 
             Repository: ${{ github.repository }}
             Merged by: ${{ github.event.pull_request.merged_by.login }}
-            Tag created: ${{ steps.tag_version.outputs.tag_name }}
             URL: ${{ github.event.pull_request.html_url }}
             Merge Commit: ${{ github.event.pull_request.merge_commit_sha }}
-
-      - name: Build and package application
-        # This step packages the output driver files and the main README file.
-        run: |
-          zip -r pyAPITemp-release.zip Driver README.md
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
-        with:
-          files: pyAPITemp-release.zip # Path to the binary/binaries to upload
-          tag_name: ${{ steps.tag_version.outputs.tag_name }}
-          name: Release ${{ steps.tag_version.outputs.tag_name }}
-          body: |
-            Release based on PR #${{ github.event.pull_request.number }}: "${{ github.event.pull_request.title }}"
-            See details at ${{ github.event.pull_request.html_url }}
-          draft: false
-          prerelease: false
