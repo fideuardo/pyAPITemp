@@ -1,0 +1,33 @@
+name: Notify PR Merge
+
+on:
+  pull_request:
+    types:
+      - closed
+
+jobs:
+  send-email:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send email notification
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: >
+            PR #${{ github.event.pull_request.number }} merged into
+            ${{ github.event.pull_request.base.ref }}
+          to: ${{ secrets.NOTIFY_EMAIL }}
+          from: ${{ secrets.NOTIFY_EMAIL_FROM }}
+          body: |
+            Pull request #${{ github.event.pull_request.number }} titled
+            "${{ github.event.pull_request.title }}" has been merged into
+            ${{ github.event.pull_request.base.ref }} by
+            ${{ github.event.pull_request.merged_by.login }}.
+
+            Repository: ${{ github.repository }}
+            URL: ${{ github.event.pull_request.html_url }}
+            Merge Commit: ${{ github.event.pull_request.merge_commit_sha }}
