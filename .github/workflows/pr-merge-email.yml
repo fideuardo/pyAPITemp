@@ -25,7 +25,7 @@ jobs:
           username: ${{ secrets.SMTP_USERNAME }}
           password: ${{ secrets.SMTP_PASSWORD }}
           subject: >
-            [${{ github.repository }}] PR #${{ github.event.pull_request.number }}: "${{ github.event.pull_request.title }}" was merged
+            [${{ github.repository }}] PR #${{ github.event.pull_request.number }}: "${{ github.event.pull_request.title }}" was released
           to: ${{ secrets.NOTIFY_EMAIL }}
           from: ${{ secrets.NOTIFY_EMAIL_FROM }}
           body: |
