@@ -63,3 +63,20 @@ jobs:
             Tag created: ${{ steps.tag_version.outputs.tag_name }}
             URL: ${{ github.event.pull_request.html_url }}
             Merge Commit: ${{ github.event.pull_request.merge_commit_sha }}
+
+      - name: Build and package application
+        # This step packages the output driver files and the main README file.
+        run: |
+          zip -r pyAPITemp-release.zip Driver README.md
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: pyAPITemp-release.zip # Path to the binary/binaries to upload
+          tag_name: ${{ steps.tag_version.outputs.tag_name }}
+          name: Release ${{ steps.tag_version.outputs.tag_name }}
+          body: |
+            Release based on PR #${{ github.event.pull_request.number }}: "${{ github.event.pull_request.title }}"
+            See details at ${{ github.event.pull_request.html_url }}
+          draft: false
+          prerelease: false
