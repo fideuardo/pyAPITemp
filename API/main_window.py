@@ -1,10 +1,9 @@
-from dataclasses import asdict
-import selectors
-import threading
-
 from PySide6.QtWidgets import QMainWindow, QSplitter, QWidget, QMessageBox
 from PySide6.QtCore import Qt, QThread, Signal
 
+from dataclasses import asdict
+import selectors
+import threading
 from API.src.TempSensor import TempSensor
 from kernel.apitest.LxDrTemp import SimTempError, SimTempTimeoutError
 
@@ -119,6 +118,7 @@ class MainWindow(QMainWindow):
         self.side_menu.signal_toggle_menu.connect(self._toggle_menu_width)
 
         self._stream_worker.sample_ready.connect(self.work_area.on_continuous_sample_received)
+
         self._stream_worker.error.connect(self._handle_stream_error)
 
         try:

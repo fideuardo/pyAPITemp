@@ -11,7 +11,6 @@ class  WorkArea(QWidget):
     stop_logging_requested = Signal()
     read_now_requested = Signal()
 
-
     def __init__(self, parent=None):
         super().__init__(parent)
         self._pages: dict[str, int] = {}
@@ -40,6 +39,7 @@ class  WorkArea(QWidget):
         self._logs_main_page.read_now_requested.connect(self.read_now_requested.emit)
         self._logs_main_page._continuous_panel.start_logging_requested.connect(self.start_logging_requested)
         self._logs_main_page._continuous_panel.stop_logging_requested.connect(self.stop_logging_requested.emit)
+
 
         self.goto("welcome")
 

@@ -11,9 +11,10 @@ from PySide6.QtWidgets import (
     QMessageBox,
     QComboBox,
 )
-from PySide6.QtCore import Qt, Slot, Signal
+from PySide6.QtCore import Qt, Slot, Signal, QTimer
 from PySide6.QtCharts import QChart, QChartView, QLineSeries, QValueAxis
 from PySide6.QtGui import QPainter, QIntValidator
+
 from kernel.apitest.LxDrTemp import SIMTEMP_FLAG_THR_EDGE
 from pathlib import Path
 from collections import deque
@@ -29,6 +30,9 @@ class LogsContinuousPage(QWidget):
         super().__init__(parent)
         self._samples = deque(maxlen=10)
         self._is_logging = False
+        self._sampling_timer = QTimer(self)
+        self._sampling_timer.setSingleShot(True)
+        self._sampling_timer.timeout.connect(self.__expiredtime)
 
         layout = QVBoxLayout(self)
         layout.setAlignment(Qt.AlignTop)
@@ -85,15 +89,6 @@ class LogsContinuousPage(QWidget):
         mode_label = QLabel("Mode: <b>Continuous</b>")
         mode_label.setStyleSheet("font-size: 16px; font-style: italic;")
 
-        use_case_layout = QHBoxLayout()
-        use_case_layout.addWidget(QLabel("Use Case:"))
-        self._use_case_combo = QComboBox()
-        self._use_case_combo.addItems([
-            "Real-time Visual Monitoring",
-            "Data Acquisition (Offline)",
-            "Threshold Alert Detection"
-        ])
-        use_case_layout.addWidget(self._use_case_combo)
 
         # --- Init Settings Layout ---
         settings_layout = QHBoxLayout()
@@ -108,6 +103,12 @@ class LogsContinuousPage(QWidget):
         self._samplingTime = QLineEdit("1000") # Default value
         self._samplingTime.setValidator(QIntValidator(0, 100000, self)) # Range from 1 to 10000
         
+        #--- simulation_mode
+        self._simulationModeLabel = QLabel("Simulation Mode:")
+        self._simulationMode = QComboBox()
+        self._simulationMode.addItems(["normal",
+                                       "noisy",
+                                       "ramp",])
         #--- ThresHold ----
         #---       Settings Layout   ---
         settings_layout.addWidget(self._periodLabel)
@@ -116,8 +117,10 @@ class LogsContinuousPage(QWidget):
         settings_layout.addWidget(self._samplingTimeLabel)
         settings_layout.addWidget(self._samplingTime)
 
+        settings_layout.addWidget(self._simulationModeLabel)
+        settings_layout.addWidget(self._simulationMode)
+
         params_layout.addWidget(mode_label)
-        params_layout.addLayout(use_case_layout)
         params_layout.addLayout(settings_layout)
 
         main_controls_layout.addLayout(params_layout)
@@ -222,6 +225,7 @@ class LogsContinuousPage(QWidget):
         temp_c = sample.get("temp_mC", 0) / 1000.0
         is_alert = bool(sample.get("flags", 0) & SIMTEMP_FLAG_THR_EDGE)
         prefix = "⚠️ " if is_alert else ""
+
         
         self._history_list.insertItem(0, f"{prefix}{temp_c:.3f} °C")
         
@@ -260,17 +264,33 @@ class LogsContinuousPage(QWidget):
             try:
                 settings = {
                     "operation_mode": "continuous",
-                    "simulation_mode": "normal",
+                    "simulation_mode": self._simulationMode.currentText(),
                     "sampling_period_ms": int(self._period.text()),
                     "threshold_mc": 0,
                 }
+                sampling_time = int(self._samplingTime.text())
+                if sampling_time < 0:
+                    raise ValueError("Sampling time must be zero or greater.")
+                self._sampling_timer.stop()
+                if sampling_time > 0:
+                    self._sampling_timer.start(sampling_time)
+
                 self.start_logging_requested.emit(settings)
             except ValueError:
                 QMessageBox.critical(self, "Invalid Input", "Please ensure all settings are valid numbers.")
                 self._is_logging = False # Revert state
         else:
+            self._sampling_timer.stop()
             self.stop_logging_requested.emit()
         
+        self._update_state_button_style()
+    
+    def __expiredtime(self) -> None:
+        if not self._is_logging:
+            return
+        self._sampling_timer.stop()
+        self._is_logging = False
+        self.stop_logging_requested.emit()
         self._update_state_button_style()
 
     def _update_state_button_style(self):
@@ -281,6 +301,16 @@ class LogsContinuousPage(QWidget):
         else:
             self._stateButton.setText("Start")
             self._stateButton.setStyleSheet("background-color: #2e7d32; color: white;") # Green
+
+    @Slot()
+    def stop_logging_from_external(self) -> None:
+        """Stops logging when an external trigger requests it."""
+        if not self._is_logging:
+            return
+        self._sampling_timer.stop()
+        self._is_logging = False
+        self.stop_logging_requested.emit()
+        self._update_state_button_style()
 
     def _on_browse_clicked(self):
         """Opens a dialog to select a file path for saving."""
