@@ -33,6 +33,10 @@ jobs:
             Repository: ${{ github.repository }}
             Merged by: ${{ github.event.pull_request.merged_by.login }}
             URL: ${{ github.event.pull_request.html_url }}
-            Merge Commit: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
-            Driver Documentation available at https://github.com/${{ github.repository }}/tree/${{ github.event.pull_request.merge_commit_sha }}/kernel/docs (manual download required).
+            Merge Commit: ${{ github.event.pull_request.merge_commit_sha || github.event.pull_request.head.sha }}
+            Driver Documentation available at https://github.com/fideuardo/LxDrTemp/tree/v1.1.0/docs
+            References:
+              - AI_NOTES.md (download): https://raw.githubusercontent.com/${{ github.repository }}/${{ github.event.pull_request.merge_commit_sha || github.event.pull_request.head.sha }}/AI_NOTES.md
+              - DESIGN.md (download): https://raw.githubusercontent.com/${{ github.repository }}/${{ github.event.pull_request.merge_commit_sha || github.event.pull_request.head.sha }}/DESIGN.md
+              - README.md (download): https://raw.githubusercontent.com/${{ github.repository }}/${{ github.event.pull_request.merge_commit_sha || github.event.pull_request.head.sha }}/README.md
             video: https://drive.google.com/file/d/1_47SzWyVgFcC9ekai40h0w_B3ducMeWN/view?usp=drive_link
