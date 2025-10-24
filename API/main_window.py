@@ -153,11 +153,13 @@ class MainWindow(QMainWindow):
             # se podría mover a un QThread.
             sample = self.temperature.read_once(timeout=2.0)
             if sample:
-                # Pasa el resultado de vuelta a la UI a través de WorkArea
                 self.work_area.on_one_shot_sample_received(asdict(sample))
+            else:
+                # Enviar un diccionario vacío si no se recibe muestra pero no hay error
+                self.work_area.on_one_shot_sample_received({})
         except SimTempError as e:
             # Maneja errores (ej. timeout) y notifica al usuario
-            QMessageBox.critical(self, "Read Error", f"Failed to read one-shot sample: {e}")
+            QMessageBox.warning(self, "Read Error", f"Failed to read one-shot sample: {e}")
             # Envía un diccionario vacío para que la UI pueda resetear su estado
             self.work_area.on_one_shot_sample_received({})
 
