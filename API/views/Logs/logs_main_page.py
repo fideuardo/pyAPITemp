@@ -12,7 +12,7 @@ from .logs_continuous_page import LogsContinuousPage
  
 
 class LogsMainPage(QWidget):
-    """Página principal para la sección de Logs con controles de inicio/parada."""
+    """Main page for the Logs section with start/stop controls."""
     read_now_requested = Signal()
 
     def __init__(self, parent=None):
@@ -24,15 +24,15 @@ class LogsMainPage(QWidget):
         main_layout.setAlignment(Qt.AlignTop)
         main_layout.setContentsMargins(20, 20, 20, 20)
 
-        # --- Paneles de Datos (intercambiables) ---
+        # --- Switchable data panels ---
         self._data_panel_stack = QStackedWidget()
         main_layout.addWidget(self._data_panel_stack)
 
-        # Panel para modo One-Shot
+        # Panel for one-shot mode
         self._oneshot_panel = LogsOneShotPage()
         self._data_panel_stack.addWidget(self._oneshot_panel)
 
-        # Panel para modo Continuo (gráfico)
+        # Panel for continuous mode (chart)
         self._continuous_panel = LogsContinuousPage()
         self._data_panel_stack.addWidget(self._continuous_panel)
         # ------------------------------------------
@@ -43,10 +43,10 @@ class LogsMainPage(QWidget):
 
     @Slot(str)
     def set_operation_mode(self, mode: str):
-        """Actualiza la etiqueta que muestra el modo de operación actual."""
+        """Update the label that shows the current operation mode."""
         is_continuous = (mode == "continuous")
 
-        # Cambiar entre el panel one-shot y el panel de gráfico
+        # Switch between the one-shot panel and the chart panel
         self._data_panel_stack.setCurrentWidget(self._continuous_panel if is_continuous else self._oneshot_panel)
 
     @Slot(dict)

@@ -6,7 +6,7 @@ class WelcomePage(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setObjectName("WelcomePage")
-        # Estilo básico para que se vea bien, puedes ajustarlo con QSS
+        # Basic styling; feel free to refine it via QSS
         self.setStyleSheet("background-color: #3a404a; color: white;")
 
         self._main_layout = QVBoxLayout(self)
@@ -20,13 +20,13 @@ class WelcomePage(QWidget):
         title.setStyleSheet("font-size: 24px; font-weight: bold; margin-bottom: 15px;")
         self._main_layout.addWidget(title)
 
-        # Contenedor para la información dinámica
+        # Container for dynamic information blocks
         self._info_container = QWidget()
         self._main_layout.addWidget(self._info_container)
         self._main_layout.addStretch(1)
 
     def _create_info_group(self, title: str, info_dict: dict[str, str]) -> QWidget:
-        """Crea un widget para un bloque de información (ej. 'API' o 'Driver')."""
+        """Create a widget for an information block (e.g., 'API' or 'Driver')."""
         group_widget = QWidget()
         group_layout = QVBoxLayout(group_widget)
         group_layout.setContentsMargins(0, 0, 0, 0)
@@ -38,7 +38,7 @@ class WelcomePage(QWidget):
         group_layout.addWidget(title_label)
 
         form_layout = QFormLayout()
-        form_layout.setContentsMargins(15, 0, 0, 0) # Indentación
+        form_layout.setContentsMargins(15, 0, 0, 0)  # Indentation
         form_layout.setLabelAlignment(Qt.AlignLeft)
         form_layout.setFormAlignment(Qt.AlignLeft)
         form_layout.setHorizontalSpacing(10)
@@ -55,10 +55,10 @@ class WelcomePage(QWidget):
 
     def set_info(self, *args, alignment: str = "vertical"):
         """
-        Muestra bloques de información con alineación vertical u horizontal.
-        Ejemplo: set_info("API", api_dict, "Driver", driver_dict, alignment="horizontal")
+        Display information blocks with either vertical or horizontal alignment.
+        Example: set_info("API", api_dict, "Driver", driver_dict, alignment="horizontal")
         """
-        # Limpia el contenedor anterior
+        # Clear any existing container
         layout = self._info_container.layout()
         if layout is not None:
             while layout.count():
@@ -69,10 +69,10 @@ class WelcomePage(QWidget):
         if alignment == "horizontal":
             container_layout = QHBoxLayout(self._info_container)
             container_layout.setAlignment(Qt.AlignTop)
-        else: # "vertical" por defecto
+        else:  # Defaults to "vertical"
             container_layout = QVBoxLayout(self._info_container)
 
-        # Procesa los argumentos en pares (título, diccionario)
+        # Process arguments as (title, dictionary) pairs
         for i in range(0, len(args), 2):
             title = args[i]
             info_dict = args[i+1]
@@ -83,35 +83,35 @@ class WelcomePage(QWidget):
             container_layout.addStretch(1)
 
     def set_sensor_info(self, info: dict[str, str]):
-        """Mantiene la compatibilidad con el método anterior."""
+        """Backward-compatible helper for the previous method name."""
         self.set_info("Driver", info, alignment="vertical")
 
 if __name__ == "__main__":
     import sys
     from PySide6.QtWidgets import QApplication
 
-    # Crea la aplicación
+    # Create the application
     app = QApplication(sys.argv)
 
-    # Crea una instancia de la página de bienvenida
+    # Create an instance of the welcome page
     welcome_widget = WelcomePage()
 
-    # Proporciona datos de prueba para la depuración
+    # Provide sample data for debugging
     dummy_api_info = {"name": "Temperature Panel Control", "version": "0.0.1"}
 
-    # Proporciona datos de prueba para la depuración, imitando la estructura de `sensor.info`
+    # Additional sample data mirroring the structure of `sensor.info`
     dummy_driver_info = {
         "name": "SimTempDriver (Debug)",
         "version": "v0.1-debug",
         "description": "This is a standalone test of the WelcomePage widget. It shows how text can wrap if it is very long.",
     }
 
-    # --- Prueba de la nueva función ---
-    # Cambia "vertical" por "horizontal" para ver el otro layout
+    # --- Demo of the new helper ---
+    # Change "vertical" to "horizontal" to preview the other layout
     alignment_mode = "vertical"
     welcome_widget.set_info("API", dummy_api_info, "Driver", dummy_driver_info, alignment=alignment_mode)
 
-    # Muestra el widget y ejecuta la aplicación
+    # Show the widget and run the application
     welcome_widget.resize(800, 400)
     welcome_widget.show()
     sys.exit(app.exec())

@@ -34,7 +34,7 @@ class SideMenu(QWidget):
 
         btn_collapse = QPushButton("⟨⟩")
         btn_collapse.setObjectName("CollapseButton")
-        btn_collapse.setToolTip("Colapsar/expandir menú")
+        btn_collapse.setToolTip("Collapse/expand menu")
         btn_collapse.setMinimumHeight(28)
 
         sep = QFrame()

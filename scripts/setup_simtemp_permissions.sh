@@ -14,30 +14,30 @@ log() {
 
 require_root() {
     if [[ ${EUID:-$(id -u)} -ne 0 ]]; then
-        echo "Este script debe ejecutarse con privilegios de administrador. Usa: sudo $0" >&2
+        echo "This script must be run with administrative privileges. Use: sudo $0" >&2
         exit 1
     fi
 }
 
 ensure_group() {
     if ! getent group "$TARGET_GROUP" >/dev/null; then
-        log "Creando grupo '$TARGET_GROUP'"
+        log "Creating group '$TARGET_GROUP'"
         groupadd "$TARGET_GROUP"
     fi
 }
 
 ensure_user_in_group() {
     if [[ -z "$TARGET_USER" ]]; then
-        log "No se pudo detectar el usuario para agregar al grupo '$TARGET_GROUP'."
-        log "Añádelo manualmente con: sudo usermod -a -G $TARGET_GROUP <usuario>"
+        log "Could not detect the user to add to group '$TARGET_GROUP'."
+        log "Add it manually with: sudo usermod -a -G $TARGET_GROUP <user>"
         return
     fi
     if id -nG "$TARGET_USER" | tr ' ' '\n' | grep -qx "$TARGET_GROUP"; then
-        log "El usuario '$TARGET_USER' ya pertenece al grupo '$TARGET_GROUP'."
+        log "User '$TARGET_USER' already belongs to group '$TARGET_GROUP'."
     else
-        log "Agregando usuario '$TARGET_USER' al grupo '$TARGET_GROUP'"
+        log "Adding user '$TARGET_USER' to group '$TARGET_GROUP'"
         usermod -a -G "$TARGET_GROUP" "$TARGET_USER"
-        log "Deberás cerrar sesión y volver a entrar para aplicar el cambio de grupo."
+        log "You must log out and back in for the group change to take effect."
     fi
 }
 

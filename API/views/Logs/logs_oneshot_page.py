@@ -57,7 +57,7 @@ class LogsOneShotPage(QWidget):
         title.setStyleSheet("font-size: 24px; font-weight: bold;")
         title.setAlignment(Qt.AlignCenter)
 
-        # Botón de lectura (centro)
+        # Read button (centered)
         self._read_now_button = QPushButton("Read Now")
         self._read_now_button.setStyleSheet("""
             QPushButton {

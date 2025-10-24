@@ -49,16 +49,16 @@ class  WorkArea(QWidget):
         return lbl
 
     def set_welcome_page_info(self, api_info: dict[str, str], driver_info: dict[str, str]) -> None:
-        """Establece la información del sensor a mostrar en la página de bienvenida."""
+        """Populate the welcome page with sensor information."""
         self._welcome_page.set_info("API", api_info, "Driver", driver_info)
 
     def set_settings_page_info(self, config_info: dict[str, str]) -> None:
         self._settings_page.set_config_info(config_info)
-        # Aprovechamos para informar a la página de logs sobre el modo actual
+        # Let the logs page know about the current mode as well
         if "operation_mode" in config_info:
             self._logs_main_page.set_operation_mode(config_info["operation_mode"])
 
-    # --- Nuevos métodos para interactuar con LogsPage ---
+    # --- Helpers to interact with LogsPage ---
 
     def _add_page(self, name: str, widget: QWidget):
         idx = self.stack.addWidget(widget)
@@ -69,11 +69,11 @@ class  WorkArea(QWidget):
             self.stack.setCurrentIndex(self._pages[name])
 
     def on_one_shot_sample_received(self, sample: dict):
-        """Pasa la muestra recibida a la página de logs."""
+        """Forward the received sample to the logs page."""
         self._logs_main_page.on_sample_received(sample)
 
     def on_continuous_sample_received(self, sample: dict):
-        """Pasa la muestra continua recibida a la página de logs."""
+        """Forward continuous samples to the logs page."""
         self._logs_main_page.on_continuous_sample_received(sample)
 
     def set_threshold_indicator(self, active: bool) -> None:

@@ -48,11 +48,11 @@ class LogsContinuousPage(QWidget):
         data_layout = QHBoxLayout()
         layout.addLayout(data_layout)
 
-        # --- Samples Register ---
+        # --- Samples register ---
         self._sample_panel = self._create_sample_panel()
         data_layout.addWidget(self._sample_panel, 1)
 
-        # --- Samples Graphic ---
+        # --- Samples chart ---
         self._series = QLineSeries()
         self._series.setName("Temperature")
         chart = QChart()
@@ -83,10 +83,10 @@ class LogsContinuousPage(QWidget):
         title.setAlignment(Qt.AlignCenter)
         panel_layout.addWidget(title)
 
-        # --- Main Controls Layout (Horizontal) ---
+        # --- Main controls layout (horizontal) ---
         main_controls_layout = QHBoxLayout()
 
-        # --- Left Side: Mode and Use Case ---
+        # --- Left side: mode and use case ---
         params_layout = QVBoxLayout()
         params_layout.setAlignment(Qt.AlignTop)
 
@@ -94,7 +94,7 @@ class LogsContinuousPage(QWidget):
         mode_label.setStyleSheet("font-size: 16px; font-style: italic;")
 
 
-        # --- Init Settings Layout ---
+        # --- Initial settings layout ---
         settings_layout = QHBoxLayout()
         
         # --- Period ---
@@ -102,22 +102,22 @@ class LogsContinuousPage(QWidget):
         self._period = QLineEdit("100")
         self._period.setValidator(QIntValidator(0, 5000, self)) # Range from 5 to 5000
         
-        #--- Sampling Time ---
+        # --- Sampling time ---
         self._samplingTimeLabel = QLabel("Sampling Time [ms]:")
         self._samplingTime = QLineEdit("1000") # Default value
         self._samplingTime.setValidator(QIntValidator(0, 100000, self)) # Range from 1 to 10000
         
-        #--- simulation_mode
+        # --- Simulation mode ---
         self._simulationModeLabel = QLabel("Simulation Mode:")
         self._simulationMode = QComboBox()
         self._simulationMode.addItems(["normal",
                                        "noisy",
                                        "ramp",])
-        #--- ThresHold ----
-        self._thresholdLabel = QLabel("ThresHold [mC]:")
+        # --- Threshold ---
+        self._thresholdLabel = QLabel("Threshold [mC]:")
         self._threshold = QLineEdit("0") # Default value
         self._threshold.setValidator(QIntValidator(0, 100000, self)) # Range from 1 to 10000
-        #---       Settings Layout   ---
+        # --- Combined settings layout ---
         settings_layout.addWidget(self._periodLabel)
         settings_layout.addWidget(self._period)
 
@@ -226,7 +226,7 @@ class LogsContinuousPage(QWidget):
         current_time = time.time() - self._start_time
         temp = sample.get("temp_mC", 0) / 1000.0
 
-        # --- Caso de Uso 3: Detección de Alertas ---
+        # --- Alert detection use case ---
         is_alert = bool(sample.get("flags", 0) & SIMTEMP_FLAG_THR_EDGE)
         if is_alert:
             # Cambia el color de la serie temporalmente si hay una alerta
@@ -294,13 +294,13 @@ class LogsContinuousPage(QWidget):
                     "sampling_period_ms": int(self._period.text()),
                     "threshold_mc": 0,
                 }
-                #Config Threshold
+                # Configure the threshold value
                 threshold = int(self._threshold.text())
                 if threshold < 0:
                     raise ValueError("Threshold must be zero or greater.")
                 settings["threshold_mc"] = threshold
                 
-                #Config Sampling Time
+                # Configure the sampling time window
                 sampling_time = int(self._samplingTime.text())
                 if sampling_time < 0:
                     raise ValueError("Sampling time must be zero or greater.")

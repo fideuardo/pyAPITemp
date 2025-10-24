@@ -145,7 +145,7 @@ class TempSensor:
         """
         self._ensure_open()
 
-        # Optimización: Guardar estado, configurar para lectura rápida y restaurar después.
+        # Optimization: preserve state, switch to a fast read configuration, and restore afterward.
         try:
             original_mode = self._driver.get_operation_mode()
         except SimTempError:
@@ -156,11 +156,11 @@ class TempSensor:
             was_running = False
 
         original_period = self._driver.get_sampling_period_ms()
-        min_period = 5  # El mínimo soportado por el driver
+        min_period = 5  # Minimum supported by the driver
 
         try:
             self._driver.stop()
-            # Establecer temporalmente el período más corto para una respuesta rápida
+            # Temporarily set the shortest period to get a quick response
             if original_period != min_period:
                 self._driver.set_sampling_period_ms(min_period)
             self._driver.set_operation_mode(OperationMode.ONE_SHOT)
