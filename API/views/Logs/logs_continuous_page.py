@@ -286,10 +286,10 @@ class LogsContinuousPage(QWidget):
         self._update_state_button_style()
     
     def __expiredtime(self) -> None:
+        self._sampling_timer.stop()
         if not self._is_logging:
             return
-        self._sampling_timer.stop()
-        self._is_logging = False
+        self._is_logging = False # Actualiza el estado primero
         self.stop_logging_requested.emit()
         self._update_state_button_style()
 
