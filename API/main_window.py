@@ -40,7 +40,7 @@ class _ContinuousStreamWorker(QThread):
         try:
             fd = self._sensor.driver.fileno()
         except SimTempError as exc:
-            self.error.emit(f"No se pudo obtener el descriptor del driver: {exc}")
+            self.error.emit(f"Failed to obtain the driver file descriptor: {exc}")
             return
 
         selector = selectors.DefaultSelector()
@@ -48,7 +48,7 @@ class _ContinuousStreamWorker(QThread):
             selector.register(fd, selectors.EVENT_READ)
         except OSError as exc:
             selector.close()
-            self.error.emit(f"Fallo al registrar el descriptor para lectura: {exc}")
+            self.error.emit(f"Failed to register the descriptor for reading: {exc}")
             return
 
         try:
@@ -64,7 +64,7 @@ class _ContinuousStreamWorker(QThread):
                         except SimTempTimeoutError:
                             continue
                         except SimTempError as exc:
-                            self.error.emit(f"Error al leer muestras: {exc}")
+                            self.error.emit(f"Error while reading samples: {exc}")
                             self._stop_event.set()
                             return
                         self.sample_ready.emit(asdict(sample))
@@ -102,7 +102,7 @@ class MainWindow(QMainWindow):
         self.side_menu.setMinimumWidth(180)
         self.side_menu.setMaximumWidth(320)
         self.setCentralWidget(self.splitter)
-        self.work_area.set_welcome_page_info(api_information, self.temperature.info) # Pasa la info del sensor
+        self.work_area.set_welcome_page_info(api_information, self.temperature.info)  # Provide sensor info to the page
         driver_config = self.temperature.driverconfig
         self.work_area.set_settings_page_info(driver_config)
         try:
@@ -114,14 +114,14 @@ class MainWindow(QMainWindow):
         self.side_menu.signal_show_welcome.connect(lambda: self.work_area.goto("welcome"))
         self.side_menu.signal_show_settings.connect(lambda: self.work_area.goto("settings"))
         self.side_menu.signal_show_logs.connect(lambda: self.work_area.goto("logs"))
-        #logs continoues page
+        # Continuous logging page
         self.work_area.start_logging_requested.connect(self._handle_start_logging)
         self.work_area.stop_logging_requested.connect(self._handle_stop_logging)
-        #oneshot page
+        # One-shot page
         self.work_area.read_now_requested.connect(self._handle_read_now)
-        #settings page
+        # Settings page
         self.work_area.settings_to_write.connect(self._apply_driver_settings)
-        #side menu
+        # Side menu
         self.side_menu.signal_toggle_menu.connect(self._toggle_menu_width)
 
         self._stream_worker.sample_ready.connect(self._handle_continuous_sample)
@@ -147,8 +147,8 @@ class MainWindow(QMainWindow):
         except SimTempError as exc:
             QMessageBox.critical(
                 self,
-                "Error al iniciar",
-                f"No se pudo iniciar la captura continua: {exc}",
+                "Start Error",
+                f"Failed to start the continuous capture: {exc}",
             )
             return
 
@@ -162,24 +162,23 @@ class MainWindow(QMainWindow):
                 pass
 
     def _handle_read_now(self):
-        """Maneja la solicitud de lectura one-shot desde la UI."""
+        """Handle the one-shot read request coming from the UI."""
         try:
-            # Esta es una llamada bloqueante. Para una UI más compleja,
-            # se podría mover a un QThread.
+            # This is a blocking call; for a more complex UI we could delegate to a QThread.
             sample = self.temperature.read_once(timeout=2.0)
             if sample:
                 self.work_area.on_one_shot_sample_received(asdict(sample))
             else:
-                # Enviar un diccionario vacío si no se recibe muestra pero no hay error
+                # Send an empty payload if no sample arrives but no error occurred
                 self.work_area.on_one_shot_sample_received({})
         except SimTempError as e:
-            # Maneja errores (ej. timeout) y notifica al usuario
+            # Handle errors (for example a timeout) and notify the user
             QMessageBox.warning(self, "Read Error", f"Failed to read one-shot sample: {e}")
-            # Envía un diccionario vacío para que la UI pueda resetear su estado
+            # Provide an empty payload so the UI can reset its state
             self.work_area.on_one_shot_sample_received({})
 
     def _apply_driver_settings(self, settings: dict):
-        """Aplica la configuración recibida desde la UI al driver."""
+        """Apply the configuration received from the UI to the driver."""
         errors: list[str] = []
         for key, value in settings.items():
             try:
@@ -196,14 +195,14 @@ class MainWindow(QMainWindow):
             except SimTempError as exc:
                 errors.append(f"{key}: {exc}")
                 
-        # Refrescar la información de configuración en la UI después de aplicar los cambios
+        # Refresh the configuration information in the UI after applying the changes
         self.work_area.set_settings_page_info(self.temperature.driverconfig)
 
         if errors:
             QMessageBox.warning(
                 self,
-                "Configuración no aplicada",
-                "No se pudieron aplicar algunos ajustes:\n- " + "\n- ".join(errors),
+                "Settings Not Applied",
+                "Some adjustments could not be applied:\n- " + "\n- ".join(errors),
             )
 
     def _toggle_menu_width(self):
@@ -221,8 +220,8 @@ class MainWindow(QMainWindow):
         except SimTempError as exc:
             QMessageBox.warning(
                 self,
-                "Aviso",
-                f"No se pudo detener el driver correctamente: {exc}",
+                "Warning",
+                f"Failed to stop the driver correctly: {exc}",
             )
         finally:
             self.work_area.set_threshold_indicator(False)
@@ -233,7 +232,7 @@ class MainWindow(QMainWindow):
             self.temperature.stop()
         except SimTempError:
             pass
-        QMessageBox.critical(self, "Lectura continua", message)
+        QMessageBox.critical(self, "Continuous Read", message)
         self.work_area.set_threshold_indicator(False)
 
     @Slot(dict)
