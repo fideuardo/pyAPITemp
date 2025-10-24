@@ -2,7 +2,6 @@
 
 
 **pyAPITemp** is an instrument control panel developed in Python with PySide6. This graphical user interface lets you interact in real time with the `simtemp` Linux kernel driver, a simulated temperature sensor.
-
 The project demonstrates a full vertical integration, from the low-level kernel driver to a modern desktop application.
 
 ## Features
